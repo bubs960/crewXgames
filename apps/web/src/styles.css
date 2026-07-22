@@ -256,7 +256,7 @@ button:disabled {
 .primary-button {
   flex: none;
   color: #f7f4ee;
-  background: #e9653f;
+  background: #bd452d;
 }
 
 .mode-bar {
@@ -1115,7 +1115,8 @@ button:disabled {
 }
 
 .stitch-order > div.done {
-  opacity: 0.72;
+  border-color: #528067;
+  background: #f2faf4;
 }
 
 .stitch-order > div.done > span {

@@ -1,4 +1,4 @@
-const VERSION = "crewmultiply-play-phase1-2026-07-22-v2";
+const VERSION = "crewmultiply-play-phase1-2026-07-22-v3";
 const SHELL_CACHE = `${VERSION}:shell`;
 const PAGE_CACHE = `${VERSION}:pages`;
 const ASSET_CACHE = `${VERSION}:assets`;

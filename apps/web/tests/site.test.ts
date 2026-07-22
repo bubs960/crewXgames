@@ -3,6 +3,17 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { gameBySlug, games, legacyGameRoutes, requiredSiteRoutes } from "../src/site/gameCatalog";
 
+const contrastRatio = (foreground: string, background: string) => {
+  const luminance = (hex: string) => {
+    const channels = hex.match(/[a-f\d]{2}/gi)?.map((channel) => Number.parseInt(channel, 16) / 255) ?? [];
+    const [red, green, blue] = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  };
+  const lighter = Math.max(luminance(foreground), luminance(background));
+  const darker = Math.min(luminance(foreground), luminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
 describe("CrewMultiply Play Phase 1 catalog", () => {
   it("preserves the five legacy games while accepting the newer Shelf-backed game", () => {
     expect(games).toHaveLength(6);
@@ -11,7 +22,10 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     for (const game of games.filter((candidate) => legacyGameRoutes.includes(candidate.playPath))) {
       expect(game.status).toBe("Available");
       expect(game.playPath.endsWith("/")).toBe(true);
-      expect(existsSync(resolve(process.cwd(), game.playPath.slice(1), "index.html"))).toBe(true);
+      const canonicalPath = resolve(process.cwd(), game.playPath.slice(1), "index.html");
+      const publicPath = resolve(process.cwd(), "apps/web/public", game.playPath.slice(1), "index.html");
+      expect(existsSync(canonicalPath)).toBe(true);
+      expect(readFileSync(publicPath, "utf8")).toBe(readFileSync(canonicalPath, "utf8"));
     }
     expect(gameBySlug("cozy-crochet-critters")?.playPath).toBe("/shelf/#cozy-crochet");
     expect(gameBySlug("pet-parade-sort")?.playPath).toBe("/shelf/#pet-parade-sort");
@@ -63,7 +77,7 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     expect(index).toContain("https://play.crewmultiply.com/");
     expect(manifest).toContain('"name": "CrewMultiply Play"');
     expect(manifest).toContain('"short_name": "CM Play"');
-    expect(serviceWorker).toContain('const VERSION = "crewmultiply-play-phase1-2026-07-22-v2"');
+    expect(serviceWorker).toContain('const VERSION = "crewmultiply-play-phase1-2026-07-22-v3"');
     expect(`${index}\n${manifest}\n${serviceWorker}`).not.toContain("TeamMultiply");
   });
 
@@ -90,6 +104,37 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     expect(styles).toContain("@media (prefers-reduced-motion: no-preference)");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toContain("animation: none !important");
+  });
+
+  it("keeps the site shell on its WCAG 2.2 AA accessibility baseline", () => {
+    const source = readFileSync(resolve(process.cwd(), "apps/web/src/site/SiteApp.tsx"), "utf8");
+    const styles = readFileSync(resolve(process.cwd(), "apps/web/src/site/SiteApp.css"), "utf8");
+    const counterCat = readFileSync(resolve(process.cwd(), "waddle-home/index.html"), "utf8");
+    const meadow = readFileSync(resolve(process.cwd(), "mosaic-meadow/index.html"), "utf8");
+    const bento = readFileSync(resolve(process.cwd(), "pup-purr-bento/index.html"), "utf8");
+    const parade = readFileSync(resolve(process.cwd(), "apps/web/src/PetParadeGame.tsx"), "utf8");
+    const crochetStage = readFileSync(resolve(process.cwd(), "apps/web/src/CrochetStage.tsx"), "utf8");
+
+    expect(contrastRatio("#ffffff", "#bd452d")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#bd452d", "#f7f4ee")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#72d8d2", "#2d2924")).toBeGreaterThanOrEqual(4.5);
+    expect(styles).toContain(".play-site :focus-visible { outline: 3px solid #fff;");
+    expect(styles).toContain("box-shadow: 0 0 0 6px var(--tp-ink) !important;");
+    expect(styles).toContain(".tp-nav > a { display: inline-flex; min-height: 2.75rem;");
+    expect(source).toContain('<a className="tp-skip-link" href="#site-main">Skip to content</a>');
+    expect(source).toContain('<main id="site-main" tabIndex={-1}>');
+    expect(source).toContain("headingLevel={2}");
+    expect(source).toContain("CrewMultiply Play does not make a conformance claim while known barriers remain.");
+    expect(source).toContain("if (open && focusOnOpenRef.current)");
+    expect(counterCat).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    expect(counterCat).not.toContain("user-scalable=no");
+    expect(counterCat).toContain("<main>");
+    expect(meadow).toContain("--accent-text: #ffffff;");
+    expect(meadow).toContain("<main>");
+    expect(bento).toContain('div.setAttribute("aria-label", `Empty tray cell at row ${r + 1}, column ${c + 1}`);');
+    expect(parade).toContain('role="progressbar" aria-label="Guided practice progress"');
+    expect(parade).toContain('<h2 id="parade-coach-title">');
+    expect(crochetStage).toContain('aria-label={node.symbol + ", " + node.label');
   });
 
   it("ships only the approved consent-gated Adsterra starter batch", () => {

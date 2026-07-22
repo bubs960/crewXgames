@@ -128,15 +128,19 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
   accessibility: {
     title: "More ways to read, move, and play.",
     eyebrow: "Accessibility statement · active work",
-    intro: "The product goal is understandable puzzles, dependable controls, and clear status—not a claim that every current prototype is finished.",
+    intro: "The product target is WCAG 2.2 Level AA, backed by manual review—not a claim that every current prototype is finished.",
     sections: [
       {
         heading: "What is working now",
         body: <p>The Living Shelf and Cozy Crochet use labelled DOM controls alongside their visual stages. Cozy Crochet supports keyboard routing, visible yarn symbols and labels, reduced motion, high contrast, and live tension/legality text. The website uses semantic links, skip navigation, responsive layouts, and visible focus states.</p>
       },
       {
+        heading: "How we test",
+        body: <p>Automated checks are paired with keyboard-only navigation, 200% text sizing, narrow-width reflow, contrast measurements, reduced-motion review, and assistive-technology testing. Automated scores can find real problems, but they cannot establish ADA or WCAG conformance by themselves. CrewMultiply Play does not make a conformance claim while known barriers remain.</p>
+      },
+      {
         heading: "Known work before public launch",
-        body: <p>Several legacy game boards remain pointer-first or need richer nonvisual board descriptions. A real-phone, zoom, screen-reader, keyboard, and performance pass remains required before a public accessibility claim is made. Each game page names its own current limitation rather than hiding it.</p>
+        body: <p>Several legacy game boards remain pointer-first or need richer nonvisual board descriptions. Real-device and screen-reader validation remains required before any public accessibility claim is made. Each game page names its own current limitation rather than hiding it.</p>
       },
       {
         heading: "Feedback route",
@@ -313,7 +317,7 @@ export const SiteApp = () => {
       <a className="tp-skip-link" href="#site-main">Skip to content</a>
       <header className="tp-header">
         <div className="tp-shell tp-nav-shell">
-          <a className="tp-brand" href="/" onClick={onLink} aria-label="CrewMultiply Play home">
+          <a className="tp-brand" href="/" onClick={onLink}>
             <span>Crew</span><span className="tp-brand-mark">×</span><span>Multiply</span><small>Play</small>
           </a>
           <button ref={menuButtonRef} className="tp-menu-button" type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} aria-controls="tp-primary-navigation" onClick={() => setMenuOpen((open) => !open)}>
@@ -450,19 +454,22 @@ const GamesPage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement>) 
           <label>Session length<select value={session} onChange={(event) => setSession(event.target.value)}>{options(games.map((game) => game.sessionBand)).map((value) => <option key={value}>{value}</option>)}</select></label>
           <button type="button" onClick={resetFilters}>Reset</button>
         </div>
-        {filteredGames.length ? <div className="tp-game-grid">{filteredGames.map((game) => <GameCard game={game} key={game.id} onLink={onLink} />)}</div> : <div className="tp-filter-empty"><h2>No game matches that combination.</h2><p>The animals deny coordinating their schedules.</p><button type="button" onClick={resetFilters}>Clear filters</button></div>}
+        {filteredGames.length ? <div className="tp-game-grid">{filteredGames.map((game) => <GameCard game={game} headingLevel={2} key={game.id} onLink={onLink} />)}</div> : <div className="tp-filter-empty"><h2>No game matches that combination.</h2><p>The animals deny coordinating their schedules.</p><button type="button" onClick={resetFilters}>Clear filters</button></div>}
         <AdsterraDisplaySlot placement="content" />
       </div>
     </PageIntro>
   );
 };
 
-const GameCard = ({ game, onLink, priority = false }: { game: GameDefinition; onLink: (event: MouseEvent<HTMLAnchorElement>) => void; priority?: boolean }) => (
-  <article className="tp-game-card" data-accent={game.accent}>
-    <div className="tp-game-image"><img src={imageFor(game)} alt={game.imageAlt} loading={priority ? "eager" : "lazy"} /><div className="tp-card-tags"><span className="tp-status-available">{game.status}</span><span>{game.difficulty}</span>{game.daily && <span>Daily</span>}</div></div>
-    <div className="tp-game-body"><p className="tp-card-eyebrow">{game.eyebrow}</p><h3>{game.title}</h3><p>{game.summary}</p><div className="tp-card-meta"><span>{game.mechanic}</span><span>{game.session}</span></div><div className="tp-card-actions"><a href={pathForGame(game)} onClick={onLink}>Details <span aria-hidden="true">→</span></a><a href={game.playPath}>Play</a></div></div>
-  </article>
-);
+const GameCard = ({ game, onLink, priority = false, headingLevel = 3 }: { game: GameDefinition; onLink: (event: MouseEvent<HTMLAnchorElement>) => void; priority?: boolean; headingLevel?: 2 | 3 }) => {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
+  return (
+    <article className="tp-game-card" data-accent={game.accent}>
+      <div className="tp-game-image"><img src={imageFor(game)} alt={game.imageAlt} loading={priority ? "eager" : "lazy"} /><div className="tp-card-tags"><span className="tp-status-available">{game.status}</span><span>{game.difficulty}</span>{game.daily && <span>Daily</span>}</div></div>
+      <div className="tp-game-body"><p className="tp-card-eyebrow">{game.eyebrow}</p><Heading>{game.title}</Heading><p>{game.summary}</p><div className="tp-card-meta"><span>{game.mechanic}</span><span>{game.session}</span></div><div className="tp-card-actions"><a href={pathForGame(game)} onClick={onLink}>Details <span aria-hidden="true">→</span></a><a href={game.playPath}>Play</a></div></div>
+    </article>
+  );
+};
 
 const GameDetailPage = ({ slug, onLink }: { slug: string; onLink: (event: MouseEvent<HTMLAnchorElement>) => void }) => {
   const game = gameBySlug(slug);
@@ -500,9 +507,15 @@ const PrivacyPreferences = () => {
   const [choice, setChoice] = useState<PrivacyChoice | null>(() => readPrivacyChoice());
   const [open, setOpen] = useState(() => readPrivacyChoice() === null);
   const firstButtonRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const focusOnOpenRef = useRef(false);
 
   useEffect(() => {
-    const show = () => setOpen(true);
+    const show = () => {
+      returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      focusOnOpenRef.current = true;
+      setOpen(true);
+    };
     const syncAcrossTabs = () => {
       const next = readPrivacyChoice();
       if (choice === "optional" && next !== "optional") {
@@ -523,7 +536,10 @@ const PrivacyPreferences = () => {
   }, [choice]);
 
   useEffect(() => {
-    if (open) firstButtonRef.current?.focus();
+    if (open && focusOnOpenRef.current) {
+      firstButtonRef.current?.focus();
+      focusOnOpenRef.current = false;
+    }
   }, [open]);
 
   const save = (next: PrivacyChoice) => {
@@ -531,6 +547,7 @@ const PrivacyPreferences = () => {
     savePrivacyChoice(next);
     setChoice(next);
     setOpen(false);
+    window.requestAnimationFrame(() => returnFocusRef.current?.focus());
     if (withdrawingOptional) window.setTimeout(() => window.location.reload(), 0);
   };
 

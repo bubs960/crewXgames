@@ -364,7 +364,7 @@ export const CrochetStage = (props: CrochetStageProps) => {
             style={{ left: (node.x * 100).toFixed(2) + "%", top: (node.y * 100).toFixed(2) + "%" }}
             type="button"
             onClick={() => props.onNodeSelect(node.id)}
-            aria-label={node.label + (node.color ? ", " + node.color + " yarn" : "") + (props.guidedNodeId === node.id ? ", next guided step" : "")}
+            aria-label={node.symbol + ", " + node.label + (node.color ? ", " + node.color + " yarn" : "") + (props.guidedNodeId === node.id ? ", next guided step" : "")}
           >
             <span aria-hidden="true">{node.symbol}</span>
           </button>

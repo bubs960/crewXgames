@@ -169,7 +169,7 @@
 .parade-coach-card.phase-destination .parade-coach-action > b { background: #278078; box-shadow: 0 2px 0 #185a55; }
 .parade-coach-card.phase-reset .parade-coach-action > b { background: #8b664a; box-shadow: 0 2px 0 #604530; }
 .parade-coach-action small { display: block; color: #28736d; font-size: .58rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
-.parade-coach-action h3 { margin: 1px 0 2px; font-family: Georgia, serif; font-size: 1.03rem; line-height: 1.1; }
+.parade-coach-action h2 { margin: 1px 0 2px; font-family: Georgia, serif; font-size: 1.03rem; line-height: 1.1; }
 .parade-coach-action p { margin: 0; color: #5d4a3b; font-size: .72rem; font-weight: 750; line-height: 1.35; }
 .parade-coach-action > button { min-height: 34px; padding: 5px 9px; border: 0; background: transparent; box-shadow: none; color: #41655f; font-size: .64rem; text-decoration: underline; text-underline-offset: 2px; }
 .parade-coach-action > button:hover:not(:disabled), .parade-coach-action > button:active:not(:disabled) { transform: none; box-shadow: none; }
@@ -371,7 +371,7 @@
   .parade-coach-action { grid-template-columns: 34px minmax(0, 1fr); gap: 7px; padding: 7px 8px; }
   .parade-coach-action > b { width: 32px; height: 32px; }
   .parade-coach-action > button { grid-column: 2; justify-self: start; min-height: 28px; padding: 1px 0; }
-  .parade-coach-action h3 { font-size: .9rem; }
+  .parade-coach-action h2 { font-size: .9rem; }
   .parade-coach-action p { font-size: .64rem; }
   .parade-coach-card > footer { display: none; }
   .parade-guide-hidden { margin: 0 2px 6px; }

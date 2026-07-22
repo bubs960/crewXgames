@@ -17,7 +17,7 @@ export interface CounterCatLegacyCase {
  * relay reward can be imported.
  */
 export const COUNTER_CAT_LEGACY_SOURCE_SHA256 =
-  "e70d3066f0e011c42e5e8cae7410f1972f9925633910c5dfb863f1c22f830246";
+  "a02ba8e18d7d9053bcec9303504dce6e445de29de75551c5bbe9381afe4d8780";
 
 const normalLadderSeeds = [
   4128371639, 3266194728, 4122090545, 184758640, 688430021, 3688717103, 317625039, 102578766,

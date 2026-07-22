@@ -21,7 +21,8 @@
     --glow: rgba(63,122,63,0.45);
     --text: #3a2f22;
     --text-dim: #7a6c52;
-    --accent: #b5652f;
+    --accent: #a65325;
+    --accent-text: #ffffff;
     --star: #d99a2b;
   }
   :root[data-theme="dark"] {
@@ -36,6 +37,7 @@
     --text: #ece3cc;
     --text-dim: #a89a7a;
     --accent: #e0894a;
+    --accent-text: #1c1a15;
     --star: #e8b448;
   }
   @media (prefers-color-scheme: dark) {
@@ -51,6 +53,7 @@
       --text: #ece3cc;
       --text-dim: #a89a7a;
       --accent: #e0894a;
+      --accent-text: #1c1a15;
       --star: #e8b448;
     }
   }
@@ -83,6 +86,7 @@
       radial-gradient(ellipse at 50% 105%, rgba(63,122,63,.18) 0 38%, transparent 39%);
     mask-image: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.1));
   }
+  body > main { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 12px; }
   h1 { font-size: 1.15rem; margin: 4px 0 0; letter-spacing: 0.02em; }
   .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
   #topbar { width: 100%; max-width: 520px; justify-content: space-between; }
@@ -91,7 +95,7 @@
     border: 1px solid var(--tile-border); background: linear-gradient(180deg, var(--panel), var(--tile-bg)); color: var(--text); cursor: pointer;
     box-shadow: 0 7px 16px rgba(46, 37, 25, .12), inset 0 1px 0 rgba(255,255,255,.45);
   }
-  #modeTabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #modeTabs button.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   #themeBtn { border: none; background: none; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
   #streakBadge { font-size: 0.85rem; color: var(--text-dim); }
   #levelStrip {
@@ -104,7 +108,7 @@
     font-size: 0.8rem; cursor: pointer;
     box-shadow: 0 7px 14px rgba(46, 37, 25, .11), inset 0 1px 0 rgba(255,255,255,.38);
   }
-  #levelStrip button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #levelStrip button.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   #levelStrip button.solved { box-shadow: inset 0 0 0 2px var(--star); }
   #status { font-size: 0.9rem; opacity: 0.85; min-height: 1.3em; text-align: center; }
   #hudRow { font-size: 0.85rem; color: var(--text-dim); gap: 16px; }
@@ -208,6 +212,7 @@
 </head>
 <body>
 <a class="shelfLink" href="../index.html">← All games</a>
+<main>
   <h1>🌿 Mosaic Meadow</h1>
   <div id="topbar" class="row">
     <div id="modeTabs" class="row">
@@ -234,6 +239,7 @@
     <button class="ctl" id="shareBtn">📷 Share</button>
   </div>
   <div id="toast"></div>
+</main>
 
 <script>
 (function () {

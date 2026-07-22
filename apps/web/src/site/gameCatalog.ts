@@ -122,10 +122,10 @@ export const games: GameDefinition[] = [
     ],
     controls: [
       "Mouse or touch: select a snack and choose its tray position.",
-      "Keyboard: menu and action buttons are focusable; the placement grid still needs a complete keyboard equivalent.",
+      "Keyboard: select a snack button, then use Tab and Enter or Space on a labelled tray cell.",
       "Undo and reset are always outside the active tray."
     ],
-    accessibility: "Large cells and stable controls support touch and zoom. Snack ownership is paired with visible labels. Full keyboard placement and a nonvisual board summary are not complete yet and remain explicit launch work.",
+    accessibility: "Large cells and stable controls support touch and zoom. Snack ownership is paired with visible labels, and every tray cell exposes its row, column, and contents to keyboard and assistive-technology users. A concise nonvisual summary of the whole tray is still pre-launch work.",
     relatedSlug: "pet-parade-sort",
     accent: "gold"
   },

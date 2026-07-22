@@ -375,6 +375,9 @@
         if (cell) {
           div.classList.add("filled", cell.kind);
           div.dataset.mark = cell.icon;
+          div.setAttribute("aria-label", `${cell.kind === "cat" ? "Cat snack" : cell.kind === "dog" ? "Dog snack" : "Shared treat"} at row ${r + 1}, column ${c + 1}`);
+        } else {
+          div.setAttribute("aria-label", `Empty tray cell at row ${r + 1}, column ${c + 1}`);
         }
         div.addEventListener("click", () => placeAt(r, c));
         boardEl.appendChild(div);

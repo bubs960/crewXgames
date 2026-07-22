@@ -511,7 +511,7 @@ export const PetParadeGame = ({ onBackToShelf, onGameEvents }: PetParadeGameProp
             <section className={`parade-coach-card${tutorialCoach ? ` phase-${tutorialCoach.phase}` : ""}`} aria-labelledby="parade-coach-title" aria-describedby="parade-coach-copy">
               <header>
                 <span>Guided practice {tutorialLesson.number} of 3</span>
-                <div className="parade-lesson-progress" aria-label={`Practice ${tutorialLesson.number} of 3`}>
+                <div className="parade-lesson-progress" role="progressbar" aria-label="Guided practice progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={tutorialLesson.number}>
                   {TUTORIAL_LESSONS.map((lesson) => <i key={lesson.levelId} className={session.completionRecords[lesson.levelId] || lesson.number < tutorialLesson.number ? "complete" : lesson.number === tutorialLesson.number ? "current" : ""} />)}
                 </div>
               </header>
@@ -519,7 +519,7 @@ export const PetParadeGame = ({ onBackToShelf, onGameEvents }: PetParadeGameProp
                 <b aria-hidden="true">{tutorialCoach?.phase === "destination" ? "2" : tutorialCoach?.phase === "reset" ? "↺" : "1"}</b>
                 <div>
                   <small>{tutorialLesson.eyebrow} · {tutorialLesson.title}</small>
-                  <h3 id="parade-coach-title">{tutorialCoach?.title ?? tutorialLesson.title}</h3>
+                  <h2 id="parade-coach-title">{tutorialCoach?.title ?? tutorialLesson.title}</h2>
                   <p id="parade-coach-copy">{tutorialCoach?.copy ?? tutorialLesson.objective}</p>
                 </div>
                 <button type="button" onClick={() => setCoachDismissed(true)}>Hide guide</button>
