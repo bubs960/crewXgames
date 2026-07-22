@@ -1,0 +1,27 @@
+{
+  "name": "@teammultiply/living-shelf-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort"
+  },
+  "dependencies": {
+    "@teammultiply/ecosystem-core": "0.1.0",
+    "@teammultiply/counter-cat-bridge": "0.1.0",
+    "@teammultiply/game-bridge": "0.1.0",
+    "@teammultiply/crochet-critters": "0.1.0",
+    "@teammultiply/pet-parade-sort": "0.1.0",
+    "@teammultiply/save-data": "0.1.0",
+    "@teammultiply/shelf-pack": "0.1.0",
+    "pixi.js": "^7.4.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2"
+  }
+}

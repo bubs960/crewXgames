@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">CrewMultiply Play</title>
+  <desc id="desc">A black cat face over a coral tabletop tile</desc>
+  <rect width="512" height="512" rx="72" fill="#E9653F"/>
+  <path d="M92 380h328v50H92z" fill="#F0C843"/>
+  <path d="m142 173 35-83 65 55c10-3 21-4 32-4s22 1 32 4l65-55 35 83c20 27 30 60 30 98 0 90-72 145-162 145S112 361 112 271c0-38 10-71 30-98Z" fill="#171714"/>
+  <ellipse cx="214" cy="259" rx="32" ry="48" fill="#F0C843"/>
+  <ellipse cx="298" cy="259" rx="32" ry="48" fill="#F0C843"/>
+  <ellipse cx="218" cy="264" rx="8" ry="28" fill="#171714"/>
+  <ellipse cx="294" cy="264" rx="8" ry="28" fill="#171714"/>
+  <path d="m239 319 17 12 17-12" fill="none" stroke="#F7F4EE" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M165 318 80 302m87 41-87 12m265-37 87-16m-87 41 87 12" fill="none" stroke="#F7F4EE" stroke-width="8" stroke-linecap="round"/>
+  <path d="M235 44h42v76h-42zM218 61h76v42h-76z" fill="#F7F4EE" transform="rotate(45 256 82)"/>
+</svg>

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paws & Yarn Tangle</title>
+<meta name="theme-color" content="#d87345">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Animal Puzzles">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f6f0f5;
+    --ink: #28242c;
+    --muted: #716777;
+    --panel: #fffafd;
+    --line: #8b6f95;
+    --cat: #d98069;
+    --dog: #7aa4c8;
+    --yarn1: #d9537f;
+    --yarn2: #4e9b89;
+    --bad: #be3d44;
+    --good: #2d936c;
+    --shadow: rgba(48, 34, 55, .18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 17% 12%, rgba(217, 83, 127, .14) 0 12%, transparent 13%),
+      radial-gradient(circle at 88% 20%, rgba(78, 155, 137, .16) 0 12%, transparent 13%),
+      linear-gradient(180deg, #fff6fb, #efe5f0 54%, #e6dae8);
+    color: var(--ink);
+    font-family: ui-rounded, "Segoe UI", system-ui, sans-serif;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(35deg, rgba(139,111,149,.08) 0 2px, transparent 2px 28px),
+      radial-gradient(ellipse at 50% 105%, rgba(132, 95, 73, .16) 0 38%, transparent 39%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.16));
+  }
+  main {
+    width: min(1060px, 100%);
+    padding: 18px;
+    display: grid;
+    grid-template-columns: minmax(310px, 700px) minmax(250px, 320px);
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+  }
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 3rem); letter-spacing: 0; }
+  .subtitle { color: var(--muted); font-weight: 750; }
+  .toolbar, .stats { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button, .pill {
+    border: 2px solid var(--line);
+    background: linear-gradient(180deg, #fffafd, #f1e2f3);
+    color: var(--ink);
+    min-height: 40px;
+    border-radius: 8px;
+    padding: 8px 11px;
+    font: inherit;
+    font-weight: 850;
+    box-shadow: 0 3px 0 var(--line), 0 9px 18px rgba(48, 34, 55, .13), inset 0 1px 0 rgba(255,255,255,.82);
+  }
+  button { cursor: pointer; }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  #stage {
+    position: relative;
+    min-height: 560px;
+    border: 5px solid var(--line);
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(217, 83, 127, .14) 0 12%, transparent 13%),
+      radial-gradient(circle at 85% 80%, rgba(78, 155, 137, .14) 0 14%, transparent 15%),
+      repeating-linear-gradient(45deg, rgba(139,111,149,.045) 0 8px, rgba(255,255,255,.16) 8px 16px),
+      #fffafd;
+    box-shadow: 0 28px 58px rgba(48, 34, 55, .25), inset 0 2px 0 rgba(255,255,255,.75);
+    touch-action: none;
+  }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .edge { stroke: var(--yarn1); stroke-width: 7; stroke-linecap: round; opacity: .94; filter: drop-shadow(0 3px 3px rgba(48,34,55,.18)); }
+  .edge.alt { stroke: var(--yarn2); }
+  .edge.crossing { stroke: var(--bad); }
+  .node {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 3px solid #5d4a64;
+    background:
+      radial-gradient(circle at 32% 24%, rgba(255,255,255,.95), transparent 20%),
+      repeating-radial-gradient(circle at 46% 52%, #fff 0 4px, #efd1e8 4px 7px, #c26f9b 7px 10px);
+    font-size: 30px;
+    box-shadow: 0 13px 24px rgba(48, 34, 55, .24), inset 0 -5px 9px rgba(92, 57, 100, .16);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .node.dragging { cursor: grabbing; z-index: 3; transform: translate(-50%, -50%) scale(1.08); }
+  aside { display: grid; gap: 14px; align-content: start; }
+  .pets {
+    min-height: 170px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .pet {
+    display: grid;
+    place-items: center;
+    border: 2px solid rgba(139, 111, 149, .32);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 50% 22%, rgba(255,255,255,.86), transparent 30%),
+      linear-gradient(160deg, #fffafd, #f3d8ed);
+    box-shadow: 0 16px 30px rgba(48, 34, 55, .19), inset 0 -8px 18px rgba(103, 72, 112, .11);
+    font-size: 68px;
+    text-shadow: 0 8px 9px rgba(48,34,55,.18);
+  }
+  #toast { min-height: 30px; color: var(--muted); font-weight: 800; }
+  .win #stage { border-color: var(--good); }
+  @media (max-width: 840px) {
+    main { grid-template-columns: 1fr; padding: 12px; }
+    header { flex-direction: column; align-items: flex-start; }
+    #stage { min-height: min(92vw, 560px); }
+  }
+.shelfLink {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 20;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, .92);
+  color: inherit;
+  text-decoration: none;
+  font-weight: 850;
+  font-size: .78rem;
+  border: 1.5px solid rgba(127, 109, 87, .42);
+  box-shadow: 0 6px 18px rgba(45, 35, 24, .14);
+}
+@media (max-width: 520px) { .shelfLink { position: static; margin: 8px auto 0; } }
+</style>
+</head>
+<body>
+<a class="shelfLink" href="../index.html">← All games</a>
+<main>
+  <header>
+    <div>
+      <h1>Paws & Yarn Tangle</h1>
+      <div class="subtitle">Uncross the yarn before the cat and dog both claim it.</div>
+    </div>
+    <div class="toolbar">
+      <button id="dailyBtn" title="Daily tangle">Daily</button>
+      <button id="prevBtn" title="Previous">Prev</button>
+      <button id="nextBtn" title="Next">Next</button>
+      <button id="resetBtn" title="Reset">Reset</button>
+    </div>
+  </header>
+  <section id="stage" aria-label="yarn board">
+    <svg id="svg" aria-hidden="true"></svg>
+  </section>
+  <aside>
+    <div class="stats">
+      <span class="pill" id="levelPill">Level 1</span>
+      <span class="pill" id="crossPill">0 crosses</span>
+      <span class="pill" id="movePill">0 moves</span>
+    </div>
+    <div class="pets" aria-hidden="true">
+      <div class="pet">🐱</div>
+      <div class="pet">🐶</div>
+    </div>
+    <div id="toast">Drag a yarn ball.</div>
+  </aside>
+</main>
+<script>
+(function () {
+  const stage = document.getElementById("stage");
+  const svg = document.getElementById("svg");
+  const levelPill = document.getElementById("levelPill");
+  const crossPill = document.getElementById("crossPill");
+  const movePill = document.getElementById("movePill");
+  const toastEl = document.getElementById("toast");
+  const animals = ["🐱", "🐶", "🐾", "🧶", "🐕", "🐈", "🦴", "🐟", "🥎", "🎀"];
+  const levels = [
+    { n: 5, edges: [[0,1],[1,2],[2,3],[3,4],[4,0],[0,2],[1,3]] },
+    { n: 6, edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3],[1,4],[2,5]] },
+    { n: 7, edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0],[0,3],[1,4],[2,5],[3,6]] },
+    { n: 8, edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[0,4],[1,5],[2,6],[3,7],[0,2],[4,6]] },
+    { n: 9, edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,0],[0,4],[1,5],[2,6],[3,7],[4,8],[0,6]] }
+  ];
+  let nodes = [], edges = [], level = 0, dragging = null, moves = 0, seed = 1, daily = false;
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function todaySeed() {
+    const d = new Date();
+    return Number(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`);
+  }
+  function point(e) {
+    const rect = stage.getBoundingClientRect();
+    const x = Math.max(38, Math.min(rect.width - 38, e.clientX - rect.left));
+    const y = Math.max(38, Math.min(rect.height - 38, e.clientY - rect.top));
+    return { x, y };
+  }
+  function ccw(a, b, c) {
+    return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+  }
+  function intersects(a, b, c, d) {
+    return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d);
+  }
+  function crossingEdges() {
+    const bad = new Set();
+    for (let i = 0; i < edges.length; i++) {
+      for (let j = i + 1; j < edges.length; j++) {
+        const e1 = edges[i], e2 = edges[j];
+        if (e1[0] === e2[0] || e1[0] === e2[1] || e1[1] === e2[0] || e1[1] === e2[1]) continue;
+        if (intersects(nodes[e1[0]], nodes[e1[1]], nodes[e2[0]], nodes[e2[1]])) {
+          bad.add(i); bad.add(j);
+        }
+      }
+    }
+    return bad;
+  }
+  function render() {
+    const bad = crossingEdges();
+    svg.innerHTML = "";
+    edges.forEach((edge, idx) => {
+      const a = nodes[edge[0]], b = nodes[edge[1]];
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+      line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+      line.setAttribute("class", "edge " + (idx % 2 ? "alt " : "") + (bad.has(idx) ? "crossing" : ""));
+      svg.appendChild(line);
+    });
+    document.querySelectorAll(".node").forEach(el => el.remove());
+    nodes.forEach((node, idx) => {
+      const div = document.createElement("div");
+      div.className = "node" + (dragging === idx ? " dragging" : "");
+      div.style.left = node.x + "px";
+      div.style.top = node.y + "px";
+      div.textContent = animals[idx % animals.length];
+      div.addEventListener("pointerdown", e => {
+        dragging = idx;
+        div.setPointerCapture(e.pointerId);
+        render();
+      });
+      div.addEventListener("pointermove", e => {
+        if (dragging !== idx) return;
+        nodes[idx] = point(e);
+        render();
+      });
+      div.addEventListener("pointerup", () => {
+        if (dragging === idx) {
+          dragging = null;
+          moves++;
+          render();
+        }
+      });
+      stage.appendChild(div);
+    });
+    const count = bad.size;
+    levelPill.textContent = daily ? "Daily" : "Level " + (level + 1);
+    crossPill.textContent = count + " crosses";
+    movePill.textContent = moves + " moves";
+    document.body.classList.toggle("win", count === 0);
+    if (count === 0) toastEl.textContent = "Clean yarn. Nobody has to explain this to the sofa.";
+    else toastEl.textContent = "Untangle " + count + " crossing yarn lines.";
+  }
+  function startLevel(idx, useDaily) {
+    daily = useDaily;
+    level = ((idx % levels.length) + levels.length) % levels.length;
+    const spec = levels[level];
+    edges = spec.edges.map(e => e.slice());
+    const rect = stage.getBoundingClientRect();
+    const w = rect.width || 650, h = rect.height || 560;
+    const rng = mulberry32((useDaily ? todaySeed() : 1700 + level * 97) + seed);
+    nodes = Array.from({ length: spec.n }, (_, i) => {
+      const angle = (i / spec.n) * Math.PI * 2;
+      const baseX = w / 2 + Math.cos(angle) * w * .33;
+      const baseY = h / 2 + Math.sin(angle) * h * .33;
+      return {
+        x: Math.max(46, Math.min(w - 46, baseX + (rng() - .5) * w * .42)),
+        y: Math.max(46, Math.min(h - 46, baseY + (rng() - .5) * h * .42))
+      };
+    });
+    moves = 0;
+    render();
+  }
+  document.getElementById("dailyBtn").addEventListener("click", () => { seed++; startLevel(todaySeed() % levels.length, true); });
+  document.getElementById("prevBtn").addEventListener("click", () => { seed = 1; startLevel(level - 1, false); });
+  document.getElementById("nextBtn").addEventListener("click", () => { seed = 1; startLevel(level + 1, false); });
+  document.getElementById("resetBtn").addEventListener("click", () => { seed++; startLevel(level, daily); });
+  window.addEventListener("resize", () => startLevel(level, daily));
+  requestAnimationFrame(() => startLevel(0, false));
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

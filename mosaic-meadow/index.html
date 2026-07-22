@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mosaic Meadow</title>
+<meta name="theme-color" content="#d87345">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Animal Puzzles">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f3ecd9;
+    --panel: #ffffff;
+    --tile-bg: #ece0c4;
+    --tile-bg2: #e6d8b8;
+    --tile-border: #cbb992;
+    --line-dull: #a89a72;
+    --line-match: #3f7a3f;
+    --glow: rgba(63,122,63,0.45);
+    --text: #3a2f22;
+    --text-dim: #7a6c52;
+    --accent: #b5652f;
+    --star: #d99a2b;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1a15;
+    --panel: #26231c;
+    --tile-bg: #2c2820;
+    --tile-bg2: #332e24;
+    --tile-border: #4a4433;
+    --line-dull: #5c5540;
+    --line-match: #6fcf6f;
+    --glow: rgba(111,207,111,0.5);
+    --text: #ece3cc;
+    --text-dim: #a89a7a;
+    --accent: #e0894a;
+    --star: #e8b448;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1a15;
+      --panel: #26231c;
+      --tile-bg: #2c2820;
+      --tile-bg2: #332e24;
+      --tile-border: #4a4433;
+      --line-dull: #5c5540;
+      --line-match: #6fcf6f;
+      --glow: rgba(111,207,111,0.5);
+      --text: #ece3cc;
+      --text-dim: #a89a7a;
+      --accent: #e0894a;
+      --star: #e8b448;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 18% 10%, rgba(255,255,255,.55), transparent 13%),
+      radial-gradient(circle at 88% 18%, rgba(217,154,43,.16), transparent 12%),
+      linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 80%, var(--line-match) 20%));
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 16px 12px 40px;
+    gap: 12px;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(90deg, rgba(63,122,63,.055) 0 10px, transparent 10px 28px),
+      radial-gradient(ellipse at 50% 105%, rgba(63,122,63,.18) 0 38%, transparent 39%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.1));
+  }
+  h1 { font-size: 1.15rem; margin: 4px 0 0; letter-spacing: 0.02em; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  #topbar { width: 100%; max-width: 520px; justify-content: space-between; }
+  #modeTabs button {
+    font-size: 0.85rem; padding: 7px 15px; border-radius: 999px;
+    border: 1px solid var(--tile-border); background: linear-gradient(180deg, var(--panel), var(--tile-bg)); color: var(--text); cursor: pointer;
+    box-shadow: 0 7px 16px rgba(46, 37, 25, .12), inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  #modeTabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #themeBtn { border: none; background: none; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
+  #streakBadge { font-size: 0.85rem; color: var(--text-dim); }
+  #levelStrip {
+    display: flex; gap: 6px; overflow-x: auto; max-width: 520px; width: 100%;
+    padding: 4px 2px; scrollbar-width: thin;
+  }
+  #levelStrip button {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 11px;
+    border: 1px solid var(--tile-border); background: linear-gradient(180deg, var(--panel), var(--tile-bg)); color: var(--text);
+    font-size: 0.8rem; cursor: pointer;
+    box-shadow: 0 7px 14px rgba(46, 37, 25, .11), inset 0 1px 0 rgba(255,255,255,.38);
+  }
+  #levelStrip button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #levelStrip button.solved { box-shadow: inset 0 0 0 2px var(--star); }
+  #status { font-size: 0.9rem; opacity: 0.85; min-height: 1.3em; text-align: center; }
+  #hudRow { font-size: 0.85rem; color: var(--text-dim); gap: 16px; }
+  #boardWrap {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 10px;
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 18% 15%, rgba(255,255,255,.55), transparent 28%),
+      linear-gradient(145deg, color-mix(in srgb, var(--panel) 86%, white 14%), var(--tile-bg2));
+    box-shadow: 0 26px 54px rgba(46, 37, 25, .22), inset 0 2px 0 rgba(255,255,255,.42);
+  }
+  #board {
+    display: grid;
+    /* a block-level grid's width:auto fills its container by default,
+       which would silently compress the explicit px tracks below their
+       real size instead of overflowing #boardWrap's scrollbar — fit-content
+       makes #board size to its own tracks so it can genuinely overflow */
+    width: fit-content;
+    gap: 3px;
+    background: var(--tile-border);
+    border: 5px solid var(--tile-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.25), 0 12px 22px rgba(46, 37, 25, .18);
+    transition: filter 0.6s ease;
+  }
+  .tile {
+    background:
+      radial-gradient(circle at 30% 24%, rgba(255,255,255,.42), transparent 30%),
+      var(--tile-bg);
+    cursor: pointer;
+    user-select: none;
+    display: block;
+    position: relative;
+  }
+  .tile:nth-child(odd) { background: radial-gradient(circle at 30% 24%, rgba(255,255,255,.36), transparent 30%), var(--tile-bg2); }
+  .tile svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 2px rgba(42, 33, 22, .15)); }
+  .tile path { transition: stroke 0.25s ease, filter 0.25s ease; }
+  .tile.hinted { outline: 3px solid var(--star); outline-offset: -3px; z-index: 2; }
+  #board.won .tile { animation: bloom 0.6s ease forwards; }
+  @keyframes bloom {
+    0% { filter: brightness(1); }
+    40% { filter: brightness(1.35) saturate(1.3); }
+    100% { filter: brightness(1.05) saturate(1.1); }
+  }
+  #controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button.ctl {
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--tile-border);
+    background: linear-gradient(180deg, var(--panel), var(--tile-bg));
+    cursor: pointer;
+    color: var(--text);
+    box-shadow: 0 8px 16px rgba(46, 37, 25, .13), inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  button.ctl:active { transform: scale(0.96); }
+  button.ctl:disabled { opacity: 0.4; cursor: default; }
+  #winBanner {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--line-match);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    min-height: 1.4em;
+    text-align: center;
+  }
+  #winBanner.show { opacity: 1; }
+  #stars { font-size: 1.1rem; letter-spacing: 2px; }
+  #toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); color: var(--text); border: 1px solid var(--tile-border);
+    padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; max-width: 90vw;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+.shelfLink {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 20;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, .92);
+  color: inherit;
+  text-decoration: none;
+  font-weight: 850;
+  font-size: .78rem;
+  border: 1.5px solid rgba(127, 109, 87, .42);
+  box-shadow: 0 6px 18px rgba(45, 35, 24, .14);
+}
+@media (max-width: 520px) { .shelfLink { position: static; margin: 8px auto 0; } }
+</style>
+</head>
+<body>
+<a class="shelfLink" href="../index.html">← All games</a>
+  <h1>🌿 Mosaic Meadow</h1>
+  <div id="topbar" class="row">
+    <div id="modeTabs" class="row">
+      <button id="tabLadder" class="active">Ladder</button>
+      <button id="tabDaily">Daily</button>
+    </div>
+    <div class="row">
+      <span id="streakBadge"></span>
+      <button id="themeBtn" title="Toggle dark mode">🌙</button>
+    </div>
+  </div>
+  <div id="levelStrip"></div>
+  <div id="status"></div>
+  <div id="hudRow" class="row">
+    <span id="movesHud"></span>
+    <span id="parHud"></span>
+  </div>
+  <div id="boardWrap"><div id="board"></div></div>
+  <div id="winBanner"><div id="stars"></div><div id="winText"></div></div>
+  <div id="controls">
+    <button class="ctl" id="undoBtn">↺ Undo</button>
+    <button class="ctl" id="resetBtn">⟲ Reset</button>
+    <button class="ctl" id="hintBtn">💡 Hint</button>
+    <button class="ctl" id="shareBtn">📷 Share</button>
+  </div>
+  <div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* CORE-START — pure generator/solver logic, no DOM/localStorage.
+     Kept byte-identical between the shipped game and tools/bake.mjs
+     (which regex-extracts this block) so bake-time verification and
+     runtime board reconstruction can never drift. */
+
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // edge order: [top, right, bottom, left]
+  function rotateCW(t) { return [t[3], t[0], t[1], t[2]]; }
+  function rotateN(t, n) { let r = t; for (let i = 0; i < n; i++) r = rotateCW(r); return r; }
+
+  function tuplesEqual(a, b) { return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3]; }
+
+  // rotations that reproduce this exact tuple (self-symmetry group);
+  // any of these is an equally-valid "solved" orientation for the tile.
+  function validRotSet(tuple) {
+    const out = [];
+    for (let r = 0; r < 4; r++) if (tuplesEqual(rotateN(tuple, r), tuple)) out.push(r);
+    return out;
+  }
+
+  function buildSolvedTuples(rng, N, vineBias) {
+    const vEdge = [];
+    for (let r = 0; r < N; r++) {
+      const row = [0];
+      for (let c = 1; c < N; c++) row.push(rng() < vineBias ? 1 : 0);
+      row.push(0);
+      vEdge.push(row);
+    }
+    const hEdge = [];
+    for (let r = 0; r <= N; r++) {
+      const row = [];
+      for (let c = 0; c < N; c++) row.push((r === 0 || r === N) ? 0 : (rng() < vineBias ? 1 : 0));
+      hEdge.push(row);
+    }
+    const solved = [];
+    for (let r = 0; r < N; r++) {
+      const row = [];
+      for (let c = 0; c < N; c++) row.push([hEdge[r][c], vEdge[r][c + 1], hEdge[r + 1][c], vEdge[r][c]]);
+      solved.push(row);
+    }
+    return solved;
+  }
+
+  // backtracking uniqueness check. Counts DISTINCT VISUAL boards, not raw
+  // rotation-int assignments: a tile with rotational symmetry (e.g. all four
+  // edges the same) looks identical in more than one raw rotation, which
+  // would otherwise make countSolutions see fake ambiguity in almost every
+  // board and reject it. Dedup by the rendered-edges signature instead.
+  function countSolutions(solved, N, limit, nodeBudget) {
+    const order = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) order.push([r, c]);
+    const rotGrid = Array.from({ length: N }, () => new Array(N).fill(0));
+    const seenVisual = new Set();
+    let nodes = 0;
+    let budgetHit = false;
+    function cur(r, c, rot) { return rotateN(solved[r][c], rot); }
+    function visualSignature() {
+      let sig = "";
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) sig += cur(r, c, rotGrid[r][c]).join("") + "|";
+      return sig;
+    }
+    function backtrack(i) {
+      if (seenVisual.size >= limit || budgetHit) return;
+      if (nodes++ > nodeBudget) { budgetHit = true; return; }
+      if (i === order.length) { seenVisual.add(visualSignature()); return; }
+      const [r, c] = order[i];
+      for (let rot = 0; rot < 4; rot++) {
+        const t = cur(r, c, rot);
+        if (c === 0 && t[3] !== 0) continue;
+        if (r === 0 && t[0] !== 0) continue;
+        if (c === N - 1 && t[1] !== 0) continue;
+        if (r === N - 1 && t[2] !== 0) continue;
+        if (c > 0) { const leftT = cur(r, c - 1, rotGrid[r][c - 1]); if (leftT[1] !== t[3]) continue; }
+        if (r > 0) { const topT = cur(r - 1, c, rotGrid[r - 1][c]); if (topT[2] !== t[0]) continue; }
+        rotGrid[r][c] = rot;
+        backtrack(i + 1);
+        if (seenVisual.size >= limit || budgetHit) return;
+      }
+    }
+    backtrack(0);
+    return { count: seenVisual.size, nodes, budgetHit };
+  }
+
+  // Searches candidate seeds until one yields a uniquely-solvable board.
+  // Runtime-safe only for small N (see games-lane memory: uniqueness search
+  // cost explodes with grid size). Ladder levels never call this at play
+  // time — see buildBakedBoard() below, which replays a pre-verified attempt.
+  function generateVerified(N, vineBias, seed, maxAttempts, nodeBudget) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const rng = mulberry32(seed + attempt * 7919);
+      const solved = buildSolvedTuples(rng, N, vineBias);
+      const res = countSolutions(solved, N, 2, nodeBudget);
+      if (res.count === 1 && !res.budgetHit) {
+        const rots = [];
+        for (let i = 0; i < N * N; i++) {
+          let s; do { s = Math.floor(rng() * 4); } while (s === 0);
+          rots.push(s);
+        }
+        return { ok: true, N, solved, rots, seed, attempt };
+      }
+    }
+    return { ok: false };
+  }
+
+  // Replays a bake-verified attempt directly (no solver call) — O(N^2), safe
+  // for any grid size since the expensive uniqueness search already happened
+  // offline in tools/bake.mjs.
+  function buildBakedBoard(N, vineBias, seed, attempt) {
+    const rng = mulberry32(seed + attempt * 7919);
+    const solved = buildSolvedTuples(rng, N, vineBias);
+    const rots = [];
+    for (let i = 0; i < N * N; i++) {
+      let s; do { s = Math.floor(rng() * 4); } while (s === 0);
+      rots.push(s);
+    }
+    return { N, solved, rots };
+  }
+
+  function computePar(board) {
+    let par = 0;
+    for (let r = 0; r < board.N; r++) {
+      for (let c = 0; c < board.N; c++) {
+        const idx = r * board.N + c;
+        const validSet = validRotSet(board.solved[r][c]);
+        let best = Infinity;
+        for (const target of validSet) best = Math.min(best, (target - board.rots[idx] + 4) % 4);
+        par += best;
+      }
+    }
+    return par;
+  }
+
+  /* CORE-END */
+
+  const VINE_BIAS = 0.55;
+  const DAILY_N = 5;
+
+  /* LADDER-LEVELS-START */
+  const LADDER_LEVELS = [
+  {
+    "n": 4,
+    "seed": 1000020,
+    "attempt": 0,
+    "par": 27
+  },
+  {
+    "n": 4,
+    "seed": 2000023,
+    "attempt": 0,
+    "par": 29
+  },
+  {
+    "n": 4,
+    "seed": 3000026,
+    "attempt": 0,
+    "par": 24
+  },
+  {
+    "n": 4,
+    "seed": 4000029,
+    "attempt": 0,
+    "par": 28
+  },
+  {
+    "n": 5,
+    "seed": 5000032,
+    "attempt": 0,
+    "par": 35
+  },
+  {
+    "n": 5,
+    "seed": 6000035,
+    "attempt": 0,
+    "par": 39
+  },
+  {
+    "n": 5,
+    "seed": 7000038,
+    "attempt": 1,
+    "par": 38
+  },
+  {
+    "n": 5,
+    "seed": 8000041,
+    "attempt": 0,
+    "par": 36
+  },
+  {
+    "n": 5,
+    "seed": 9000044,
+    "attempt": 0,
+    "par": 29
+  },
+  {
+    "n": 6,
+    "seed": 10000047,
+    "attempt": 1,
+    "par": 60
+  },
+  {
+    "n": 6,
+    "seed": 11000050,
+    "attempt": 0,
+    "par": 70
+  },
+  {
+    "n": 6,
+    "seed": 12000053,
+    "attempt": 0,
+    "par": 67
+  },
+  {
+    "n": 6,
+    "seed": 13000056,
+    "attempt": 0,
+    "par": 57
+  },
+  {
+    "n": 6,
+    "seed": 14000059,
+    "attempt": 0,
+    "par": 61
+  },
+  {
+    "n": 7,
+    "seed": 15000062,
+    "attempt": 6,
+    "par": 81
+  },
+  {
+    "n": 7,
+    "seed": 16000065,
+    "attempt": 0,
+    "par": 74
+  },
+  {
+    "n": 7,
+    "seed": 17000068,
+    "attempt": 3,
+    "par": 78
+  },
+  {
+    "n": 7,
+    "seed": 18000071,
+    "attempt": 4,
+    "par": 77
+  },
+  {
+    "n": 7,
+    "seed": 19000074,
+    "attempt": 1,
+    "par": 79
+  },
+  {
+    "n": 8,
+    "seed": 20000077,
+    "attempt": 24,
+    "par": 102
+  },
+  {
+    "n": 8,
+    "seed": 21000080,
+    "attempt": 5,
+    "par": 107
+  },
+  {
+    "n": 8,
+    "seed": 22000083,
+    "attempt": 2,
+    "par": 121
+  },
+  {
+    "n": 8,
+    "seed": 23000086,
+    "attempt": 4,
+    "par": 111
+  },
+  {
+    "n": 8,
+    "seed": 24000089,
+    "attempt": 3,
+    "par": 104
+  },
+  {
+    "n": 8,
+    "seed": 25000092,
+    "attempt": 2,
+    "par": 119
+  }
+];
+  /* LADDER-LEVELS-END */
+
+  // ---- localStorage helpers (mm_ prefix; all wrapped, private-browsing safe) ----
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function readStr(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function readInt(k, dflt) { const v = parseInt(readStr(k) ?? "", 10); return Number.isFinite(v) ? v : dflt; }
+  function readJSON(k) { try { return JSON.parse(readStr(k) || "null"); } catch (e) { return null; } }
+  function writeJSON(k, v) { store(k, JSON.stringify(v)); }
+
+  function doneMap() { return readJSON("mm_done") || {}; }
+  function markDone(key) { const m = doneMap(); m[key] = 1; writeJSON("mm_done", m); }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function dateStrMinus(dateStr, days) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dt = new Date(y, m - 1, d, 12);
+    dt.setDate(dt.getDate() - days);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  }
+  function dailySeedFromDate(dateStr) {
+    const n = parseInt(dateStr.replaceAll("-", ""), 10);
+    return (n ^ 0x5EEDCA7) >>> 0;
+  }
+
+  // ---- game state ----
+  let mode = "ladder"; // "ladder" | "daily"
+  let levelIdx = readInt("mm_level", 0);
+  if (levelIdx < 0 || levelIdx >= LADDER_LEVELS.length) levelIdx = 0;
+  let board = null;      // {N, solved, rots}
+  let initialRots = null;
+  let undoStack = [];
+  let moves = 0;
+  let par = 0;
+  let currentBoardKey = "";
+  let hintTile = null;
+
+  function cellIdx(N, r, c) { return r * N + c; }
+  function currentTuple(b, r, c) { return rotateN(b.solved[r][c], b.rots[cellIdx(b.N, r, c)]); }
+
+  function computeMatches(b) {
+    const N = b.N;
+    const matched = Array.from({ length: N }, () => Array.from({ length: N }, () => [false, false, false, false]));
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const t = currentTuple(b, r, c);
+        if (r === 0 && t[0] === 0) matched[r][c][0] = true;
+        if (c === N - 1 && t[1] === 0) matched[r][c][1] = true;
+        if (r === N - 1 && t[2] === 0) matched[r][c][2] = true;
+        if (c === 0 && t[3] === 0) matched[r][c][3] = true;
+        if (c > 0) {
+          const left = currentTuple(b, r, c - 1);
+          if (left[1] === t[3]) { matched[r][c][3] = true; matched[r][c - 1][1] = true; }
+        }
+        if (r > 0) {
+          const top = currentTuple(b, r - 1, c);
+          if (top[2] === t[0]) { matched[r][c][0] = true; matched[r - 1][c][2] = true; }
+        }
+      }
+    }
+    return matched;
+  }
+
+  function isWon(matched) {
+    for (const row of matched) for (const m of row) for (const ok of m) if (!ok) return false;
+    return true;
+  }
+
+  // ---- deterministic per-tile critter placement (stable across re-renders) ----
+  function hash3(seed, r, c) {
+    let h = (seed ^ (r * 374761393) ^ (c * 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 15), 2246822519);
+    h ^= h >>> 13;
+    h = Math.imul(h, 3266489917);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  const CRITTERS = ["🐌", "🐞", "🦔", "🐝"];
+  function critterFor(seed, r, c, activeCount) {
+    const roll = hash3(seed, r, c);
+    if (activeCount === 1 && roll < 0.4) return CRITTERS[Math.floor(hash3(seed, c, r) * CRITTERS.length)];
+    if (activeCount >= 3 && roll < 0.15) return CRITTERS[Math.floor(hash3(seed, c, r) * CRITTERS.length)];
+    return null;
+  }
+
+  // colors defaults to live CSS custom properties (for on-page rendering,
+  // where the browser resolves them against :root). The share-card export
+  // passes resolved literal values instead: an SVG loaded via new Image() is
+  // rendered as an isolated document with no access to the host page's
+  // :root custom properties, so var(--x) with no fallback would silently
+  // collapse to each property's initial value (invisible/black lines).
+  function tileSVG(tuple, matchedFlags, tilePx, critter, colors) {
+    colors = colors || { match: "var(--line-match)", dull: "var(--line-dull)", glow: "var(--glow)", border: "var(--tile-border)" };
+    const mid = tilePx / 2;
+    const pts = { top: [mid, 0], right: [tilePx, mid], bottom: [mid, tilePx], left: [0, mid] };
+    const edgeNames = ["top", "right", "bottom", "left"];
+    let paths = "";
+    let activeCount = 0;
+    edgeNames.forEach((name, idx) => {
+      if (!tuple[idx]) return;
+      activeCount++;
+      const p = pts[name];
+      const isMatched = matchedFlags[idx];
+      const stroke = isMatched ? colors.match : colors.dull;
+      const glow = isMatched ? `filter:drop-shadow(0 0 4px ${colors.glow});` : "";
+      const cx = p[0] * 0.4 + mid * 0.6, cy = p[1] * 0.4 + mid * 0.6;
+      paths += `<path d="M ${p[0]} ${p[1]} Q ${cx} ${cy} ${mid} ${mid}" stroke="${stroke}" stroke-width="${tilePx * 0.1}" fill="none" stroke-linecap="round" style="${glow}"/>`;
+    });
+    if (activeCount >= 2) {
+      const allMatched = matchedFlags.every((m, i) => !tuple[i] || m);
+      paths += `<circle cx="${mid}" cy="${mid}" r="${tilePx * 0.06}" fill="${allMatched ? colors.match : colors.dull}"/>`;
+    }
+    if (activeCount === 0) {
+      paths = `<circle cx="${mid}" cy="${mid}" r="${tilePx * 0.035}" fill="${colors.border}"/>`;
+    }
+    let critterSVG = "";
+    if (critter) {
+      critterSVG = `<text x="${mid}" y="${mid + tilePx * 0.1}" font-size="${tilePx * 0.42}" text-anchor="middle" class="critter">${critter}</text>`;
+    }
+    return `<svg viewBox="0 0 ${tilePx} ${tilePx}">${paths}${critterSVG}</svg>`;
+  }
+
+  function computeTilePx(N) {
+    const maxWidth = Math.min(520, window.innerWidth - 24);
+    const px = Math.floor((maxWidth - (N - 1) * 2 - 6) / N);
+    // floor is a minimum tap-target size, not a viewport-fit guarantee — on an
+    // extremely narrow viewport (foldable cover display, resized desktop
+    // window) the board can still be wider than the screen; #boardWrap's
+    // overflow-x:auto is what keeps every tile reachable in that case
+    return Math.max(16, Math.min(72, px));
+  }
+
+  function render() {
+    const boardEl = document.getElementById("board");
+    const N = board.N;
+    const tilePx = computeTilePx(N);
+    boardEl.style.gridTemplateColumns = `repeat(${N}, ${tilePx}px)`;
+    boardEl.classList.remove("won");
+    boardEl.innerHTML = "";
+    const matched = computeMatches(board);
+    const won = isWon(matched);
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const tuple = currentTuple(board, r, c);
+        const activeCount = tuple.filter(Boolean).length;
+        const critter = critterFor(board.seed ?? 0, r, c, activeCount);
+        const div = document.createElement("div");
+        div.className = "tile";
+        if (hintTile && hintTile[0] === r && hintTile[1] === c) div.classList.add("hinted");
+        div.style.width = tilePx + "px";
+        div.style.height = tilePx + "px";
+        div.innerHTML = tileSVG(tuple, matched[r][c], tilePx, critter);
+        div.addEventListener("click", () => onTileTap(r, c));
+        boardEl.appendChild(div);
+      }
+    }
+    renderHud(matched, won);
+    if (won) requestAnimationFrame(() => boardEl.classList.add("won"));
+  }
+
+  function onTileTap(r, c) {
+    if (!board) return;
+    const matchedBefore = computeMatches(board);
+    if (isWon(matchedBefore)) return;
+    undoStack.push(board.rots.slice());
+    const idx = cellIdx(board.N, r, c);
+    board.rots[idx] = (board.rots[idx] + 1) % 4;
+    moves++;
+    hintTile = null;
+    saveBoard();
+    render();
+    maybeCelebrate();
+  }
+
+  function renderHud(matched, won) {
+    document.getElementById("movesHud").textContent = `Twists: ${moves}`;
+    document.getElementById("parHud").textContent = par ? `Par: ${par}` : "";
+    document.getElementById("undoBtn").disabled = !undoStack.length;
+    const banner = document.getElementById("winBanner");
+    const status = document.getElementById("status");
+    if (won) {
+      const stars = starsFor(moves, par);
+      document.getElementById("stars").textContent = "★".repeat(stars) + "☆".repeat(3 - stars);
+      document.getElementById("winText").textContent = moves === par ? `Perfect Weave! ${moves} twists.` : `Mural complete — ${moves} twists (par ${par}).`;
+      banner.classList.add("show");
+      status.textContent = "";
+    } else {
+      banner.classList.remove("show");
+      status.textContent = mode === "daily" ? "Today's mural. Tap a tile to rotate it 90°." : `Level ${levelIdx + 1} of ${LADDER_LEVELS.length}.`;
+    }
+  }
+
+  function starsFor(m, p) {
+    if (p <= 0) return 3;
+    if (m <= p) return 3;
+    if (m <= p + Math.ceil(p * 0.5)) return 2;
+    return 1;
+  }
+
+  // attempt is part of the sig: a same-seed re-bake that resolves to a
+  // different attempt produces a completely different solved-tuple grid, so
+  // omitting it would graft an old save's rotations onto an unrelated puzzle
+  function boardSig(N, seed, attempt) { return `${N}/${seed}/${attempt}`; }
+
+  function saveBoard() {
+    if (!board) return;
+    writeJSON(`mm_board:${currentBoardKey}`, { sig: boardSig(board.N, board.seed, board.attempt), rots: board.rots, moves });
+  }
+
+  function loadSavedBoard(key, N, seed, attempt) {
+    const saved = readJSON(`mm_board:${key}`);
+    if (saved && saved.sig === boardSig(N, seed, attempt) && Array.isArray(saved.rots) && saved.rots.length === N * N) {
+      return saved;
+    }
+    return null;
+  }
+
+  function maybeCelebrate() {
+    const matched = computeMatches(board);
+    if (!isWon(matched)) return;
+    const already = !!doneMap()[currentBoardKey];
+    // best-score tracking is independent of the credit-once gate below: a
+    // replay (via Reset/Undo) that beats an earlier clear must still update
+    // mm_best, or the stored "best" freezes at whatever the first clear was
+    if (mode === "ladder") {
+      const bestKey = `mm_best:${levelIdx}:${board.seed}:${board.attempt}`;
+      const prevBest = readInt(bestKey, Infinity);
+      if (moves < prevBest) store(bestKey, String(moves));
+    }
+    if (!already) {
+      markDone(currentBoardKey);
+      if (mode === "ladder") {
+        markLevelSolvedUI(levelIdx);
+      } else if (mode === "daily") {
+        creditDailyStreak();
+      }
+    }
+    render();
+  }
+
+  function creditDailyStreak() {
+    const playedDate = dailyPinnedDate;
+    const prevDone = readStr("mm_daily_done");
+    const yStr = dateStrMinus(playedDate, 1);
+    const streak = prevDone === yStr ? readInt("mm_daily_streak", 0) + 1 : 1;
+    store("mm_daily_streak", String(streak));
+    store("mm_daily_done", playedDate);
+    renderStreak();
+  }
+
+  function renderStreak() {
+    const streak = readInt("mm_daily_streak", 0);
+    document.getElementById("streakBadge").textContent = streak > 0 ? `🔥 ${streak}` : "";
+  }
+
+  // ---- level loading ----
+  function loadLadderLevel(idx) {
+    // no-op if this exact level is already showing — reloading it would
+    // otherwise wipe the in-memory undoStack/hintTile for nothing
+    if (mode === "ladder" && idx === levelIdx && board) return;
+    mode = "ladder";
+    levelIdx = idx;
+    store("mm_level", String(idx));
+    const spec = LADDER_LEVELS[idx];
+    const built = buildBakedBoard(spec.n, VINE_BIAS, spec.seed, spec.attempt);
+    built.seed = spec.seed;
+    built.attempt = spec.attempt;
+    par = spec.par;
+    currentBoardKey = `ladder:${idx}:${spec.seed}:${spec.attempt}`;
+    const saved = loadSavedBoard(currentBoardKey, spec.n, spec.seed, spec.attempt);
+    if (saved) { built.rots = saved.rots.slice(); moves = saved.moves; }
+    else { moves = 0; }
+    board = built;
+    initialRots = buildBakedBoard(spec.n, VINE_BIAS, spec.seed, spec.attempt).rots;
+    undoStack = [];
+    hintTile = null;
+    renderLevelStrip();
+    render();
+  }
+
+  let dailyPinnedDate = todayStr();
+  let dailyLoadToken = 0;
+
+  function loadDailyLevel() {
+    const dateStr = todayStr();
+    // no-op if this exact daily puzzle is already the one showing — reloading
+    // it would otherwise wipe the in-memory undoStack/hintTile for nothing
+    if (mode === "daily" && board && currentBoardKey === `daily:${dateStr}`) return;
+    mode = "daily";
+    const cached = readJSON(`mm_puz_daily:${dateStr}`);
+    if (cached) {
+      dailyPinnedDate = dateStr;
+      finishDailyLoad(cached.N, cached.seed, cached.attempt, cached.par, dateStr);
+      return;
+    }
+    const myToken = ++dailyLoadToken;
+    document.getElementById("status").textContent = "Preparing today's mural...";
+    document.getElementById("board").innerHTML = "";
+    // setTimeout, not requestAnimationFrame: rAF never fires in a hidden/
+    // backgrounded tab (verified — document.hidden tabs suspend it entirely),
+    // which would leave this loading forever. setTimeout still fires.
+    setTimeout(() => {
+      // stale if superseded by a newer daily load or the player switched
+      // away to ladder mode before this (deferred) generation finished
+      if (myToken !== dailyLoadToken || mode !== "daily") return;
+      const baseSeed = dailySeedFromDate(dateStr);
+      const primary = generateVerified(DAILY_N, VINE_BIAS, baseSeed, 40, 3_000_000);
+      const secondary = primary.ok ? primary : generateVerified(DAILY_N, VINE_BIAS, baseSeed + 999983, 40, 3_000_000);
+      // last-resort fallback reuses buildBakedBoard so its solved/rots are
+      // guaranteed identical to whatever finishDailyLoad will later replay —
+      // a hand-rolled rots array here would let computePar score a board
+      // that's never the one actually rendered to the player
+      const finalResult = secondary.ok ? secondary : { ok: true, seed: baseSeed, attempt: 0, ...buildBakedBoard(DAILY_N, VINE_BIAS, baseSeed, 0) };
+      const p = computePar({ N: DAILY_N, solved: finalResult.solved, rots: finalResult.rots });
+      writeJSON(`mm_puz_daily:${dateStr}`, { N: DAILY_N, seed: finalResult.seed, attempt: finalResult.attempt, par: p });
+      dailyPinnedDate = dateStr;
+      finishDailyLoad(DAILY_N, finalResult.seed, finalResult.attempt, p, dateStr);
+    }, 0);
+  }
+
+  function finishDailyLoad(N, seed, attempt, p, dateStr) {
+    const built = buildBakedBoard(N, VINE_BIAS, seed, attempt);
+    built.seed = seed;
+    built.attempt = attempt;
+    par = p;
+    currentBoardKey = `daily:${dateStr}`;
+    const saved = loadSavedBoard(currentBoardKey, N, seed, attempt);
+    if (saved) { built.rots = saved.rots.slice(); moves = saved.moves; }
+    else { moves = 0; }
+    board = built;
+    initialRots = buildBakedBoard(N, VINE_BIAS, seed, attempt).rots;
+    undoStack = [];
+    hintTile = null;
+    render();
+  }
+
+  function renderLevelStrip() {
+    const strip = document.getElementById("levelStrip");
+    strip.innerHTML = "";
+    const done = doneMap();
+    LADDER_LEVELS.forEach((spec, i) => {
+      const btn = document.createElement("button");
+      btn.textContent = String(i + 1);
+      if (i === levelIdx && mode === "ladder") btn.classList.add("active");
+      if (done[`ladder:${i}:${spec.seed}`]) btn.classList.add("solved");
+      btn.addEventListener("click", () => loadLadderLevel(i));
+      strip.appendChild(btn);
+    });
+  }
+
+  function markLevelSolvedUI(idx) {
+    const strip = document.getElementById("levelStrip");
+    const btn = strip.children[idx];
+    if (btn) btn.classList.add("solved");
+  }
+
+  // ---- undo / reset ----
+  document.getElementById("undoBtn").addEventListener("click", () => {
+    if (!undoStack.length) return;
+    board.rots = undoStack.pop();
+    moves = Math.max(0, moves - 1);
+    hintTile = null;
+    saveBoard();
+    render();
+  });
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (!board || !moves) return;
+    board.rots = initialRots.slice();
+    undoStack = [];
+    moves = 0;
+    hintTile = null;
+    saveBoard();
+    render();
+  });
+
+  // ---- teaching hint ----
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove("show"), 4200);
+  }
+
+  document.getElementById("hintBtn").addEventListener("click", () => {
+    if (!board) return;
+    const matched = computeMatches(board);
+    if (isWon(matched)) return;
+    const N = board.N;
+    const edgeLabel = ["top", "right", "bottom", "left"];
+    // computeMatches()'s "matched" flag only compares CURRENT rendered edges —
+    // for an interior seam that can be true by coincidence between two tiles
+    // that are BOTH still unsolved (the flag says nothing about whether it'll
+    // stay true once the neighbor gets rotated to its real target). Only a
+    // boundary edge, or an interior edge whose neighbor is already sitting at
+    // one of its own valid target rotations, is safe to call "locked".
+    function sideGenuinelyLocked(r, c, side) {
+      if (side === 0) return r === 0 || validRotSet(board.solved[r - 1][c]).includes(board.rots[cellIdx(N, r - 1, c)]);
+      if (side === 1) return c === N - 1 || validRotSet(board.solved[r][c + 1]).includes(board.rots[cellIdx(N, r, c + 1)]);
+      if (side === 2) return r === N - 1 || validRotSet(board.solved[r + 1][c]).includes(board.rots[cellIdx(N, r + 1, c)]);
+      return c === 0 || validRotSet(board.solved[r][c - 1]).includes(board.rots[cellIdx(N, r, c - 1)]);
+    }
+    let bestForced = null;
+    let bestAnyUnique = null;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const idx = cellIdx(N, r, c);
+        const solvedTuple = board.solved[r][c];
+        const validSet = validRotSet(solvedTuple);
+        const alreadySolved = validSet.includes(board.rots[idx]);
+        if (alreadySolved) continue;
+        if (validSet.length === 1) {
+          if (!bestAnyUnique) bestAnyUnique = { r, c };
+          const lockedSide = matched[r][c].findIndex((m, side) => m && sideGenuinelyLocked(r, c, side));
+          if (lockedSide !== -1 && !bestForced) bestForced = { r, c, side: edgeLabel[lockedSide] };
+        }
+      }
+    }
+    const pick = bestForced || bestAnyUnique;
+    if (!pick) { showToast("Every remaining tile has more than one matching orientation — trust your eye on the seams."); return; }
+    hintTile = [pick.r, pick.c];
+    render();
+    if (bestForced) showToast(`This tile's ${bestForced.side} seam is already matched — only one rotation keeps it locked while it finishes the rest.`);
+    else showToast("This tile only has one correct orientation. Give it a try.");
+  });
+
+  // ---- share card ----
+  document.getElementById("shareBtn").addEventListener("click", exportShareCard);
+  function exportShareCard() {
+    if (!board) return;
+    const N = board.N;
+    const px = 80;
+    const w = N * px, h = N * px;
+    const matched = computeMatches(board);
+    // resolve actual current-theme colors up front — see tileSVG's comment
+    // on why var(--x) references can't be embedded directly in the export
+    const cs = getComputedStyle(document.documentElement);
+    const resolved = {
+      match: cs.getPropertyValue("--line-match").trim(),
+      dull: cs.getPropertyValue("--line-dull").trim(),
+      glow: cs.getPropertyValue("--glow").trim(),
+      border: cs.getPropertyValue("--tile-border").trim(),
+    };
+    const bgColor = cs.getPropertyValue("--bg").trim();
+    const tileBg1 = cs.getPropertyValue("--tile-bg").trim();
+    const tileBg2 = cs.getPropertyValue("--tile-bg2").trim();
+    let inner = `<rect width="${w}" height="${h}" fill="${bgColor}"/>`;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const tuple = currentTuple(board, r, c);
+        const activeCount = tuple.filter(Boolean).length;
+        const critter = critterFor(board.seed ?? 0, r, c, activeCount);
+        const tileMarkup = tileSVGStatic(tuple, matched[r][c], px, critter, (c + r) % 2 === 0 ? tileBg1 : tileBg2, resolved);
+        inner += `<g transform="translate(${c * px},${r * px})">${tileMarkup}</g>`;
+      }
+    }
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${inner}</svg>`;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const a = document.createElement("a");
+      a.download = `mosaic-meadow-${mode}-${mode === "ladder" ? levelIdx + 1 : dailyPinnedDate}.png`;
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgStr);
+  }
+  function tileSVGStatic(tuple, matchedFlags, tilePx, critter, bg, colors) {
+    const inner = tileSVG(tuple, matchedFlags, tilePx, critter, colors).replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
+    return `<rect width="${tilePx}" height="${tilePx}" fill="${bg}"/>${inner}`;
+  }
+
+  // ---- dark mode ----
+  function applyThemePref() {
+    const pref = readStr("mm_theme");
+    if (pref) document.documentElement.dataset.theme = pref;
+    const dark = document.documentElement.dataset.theme === "dark" ||
+      (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.getElementById("themeBtn").textContent = dark ? "☀️" : "🌙";
+  }
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme === "dark" ||
+      (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+    store("mm_theme", dark ? "light" : "dark");
+    applyThemePref();
+  });
+  // keep the glyph in sync if the OS scheme flips live while no explicit
+  // in-game preference is set — the CSS already follows this automatically,
+  // only the button's emoji needed an explicit re-check
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (!readStr("mm_theme")) applyThemePref();
+  });
+
+  // ---- mode tabs ----
+  document.getElementById("tabLadder").addEventListener("click", () => {
+    document.getElementById("tabLadder").classList.add("active");
+    document.getElementById("tabDaily").classList.remove("active");
+    document.getElementById("levelStrip").style.display = "flex";
+    loadLadderLevel(levelIdx);
+  });
+  document.getElementById("tabDaily").addEventListener("click", () => {
+    document.getElementById("tabDaily").classList.add("active");
+    document.getElementById("tabLadder").classList.remove("active");
+    document.getElementById("levelStrip").style.display = "none";
+    loadDailyLevel();
+  });
+
+  window.addEventListener("resize", () => { if (board) render(); });
+
+  // ---- boot ----
+  applyThemePref();
+  renderStreak();
+  renderLevelStrip();
+  loadLadderLevel(levelIdx);
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

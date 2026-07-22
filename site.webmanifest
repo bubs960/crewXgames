@@ -1,0 +1,14 @@
+{
+  "name": "CrewMultiply Play",
+  "short_name": "CM Play",
+  "description": "Small moves, big mischief, and a growing shelf of polished animal puzzle games.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f4ee",
+  "theme_color": "#171714",
+  "icons": [
+    { "src": "./assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

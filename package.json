@@ -1,0 +1,33 @@
+{
+  "name": "teammultiply-play-living-shelf",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@teammultiply/living-shelf-web",
+    "build": "npm run build --workspace=@teammultiply/living-shelf-web",
+    "typecheck": "tsc -p apps/web/tsconfig.json",
+    "lint": "eslint apps/web/src packages/pet-parade-sort/src apps/web/tests packages/pet-parade-sort/tests --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "npm run preview --workspace=@teammultiply/living-shelf-web",
+    "verify:site": "node scripts/verify-site.mjs",
+    "typecheck:counter-cat-bridge": "tsc -p packages/counter-cat-bridge/tsconfig.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.15.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "fake-indexeddb": "^6.0.1",
+    "globals": "^16.0.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^6.3.2",
+    "vitest": "^3.1.2"
+  }
+}

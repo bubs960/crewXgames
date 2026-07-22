@@ -1,0 +1,3457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Counter Cat</title>
+<meta name="theme-color" content="#d87345">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Animal Puzzles">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐱</text></svg>">
+<style>
+/* ============================================================
+   COUNTER CAT — flagship pass
+   You are the cat. One swat slides everything on the counter.
+   Shove the human's stuff out through the edge gaps (CRASH), keep
+   your own things safe, savor the eye contact.
+   Second skin on the same engine: 🐤 Waddle Home (slide ducklings
+   onto nests). One simulator, two rule-sets via board data.
+
+   Comedy spec (from the 7/9 research + critics):
+   - wind-up beat (deliberateness) -> glide -> TEETER on the brink
+     (Coyote Time: the pause is the joke) -> crash + material sound
+   - failures are never punished: an illegal swat is refused with a
+     "caught it" beat (Benign Violation: chaos must feel safe)
+   - the crash is the reward: per-material layered synth audio
+   ============================================================ */
+
+:root {
+  --bw: min(94vw, 560px, 61vh);
+
+  --bg: #f6efe4;            /* warm kitchen morning */
+  --ink: #43382e;
+  --ink-soft: #8b7d6e;
+  --card: #fffdf8;
+  --counter: #f3e6cd;       /* the countertop */
+  --counter-line: #e2cfa8;
+  --counter-edge: #8a6f4d;  /* wood edge of the counter */
+  --clutter: #4a4038;       /* immovable heavy stuff */
+  --nest: #b08b4f;
+  --duck: #f2c14e;
+  --duck-edge: #c99a2e;
+  --settled: #5a9e6f;
+  --target: #e08b5a;        /* the human's stuff — knock it off */
+  --target-edge: #b56635;
+  --keep: #6a9bd8;          /* the cat's stuff — never */
+  --keep-edge: #40719f;
+  --neutral: #b3a894;       /* junk; fair game */
+  --neutral-edge: #8d8271;
+  --accent: #d0684b;
+  --gap: #d0684b;
+  --cat: #5a5350;           /* a gray housecat */
+  --cat-dark: #3e3936;
+  --cat-eye: #d9cb45;
+  --bad: #d64541;
+}
+[data-theme="dark"] {
+  --bg: #211f26;
+  --ink: #e8e2d8;
+  --ink-soft: #9a9186;
+  --card: #2c2a33;
+  --counter: #322e39;
+  --counter-line: #443f4d;
+  --counter-edge: #6b5b45;
+  --clutter: #14121a;
+  --nest: #c49a5a;
+  --settled: #5a9e6f;
+  --target: #d8875a;
+  --target-edge: #a55a2e;
+  --keep: #6a9bd8;
+  --keep-edge: #40719f;
+  --neutral: #6e6659;
+  --neutral-edge: #55503f;
+  --accent: #e07a5c;
+  --gap: #e07a5c;
+  --cat: #6e6662;
+  --cat-dark: #4c4642;
+  --cat-eye: #dfd25a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #211f26;
+    --ink: #e8e2d8;
+    --ink-soft: #9a9186;
+    --card: #2c2a33;
+    --counter: #322e39;
+    --counter-line: #443f4d;
+    --counter-edge: #6b5b45;
+    --clutter: #14121a;
+    --nest: #c49a5a;
+    --settled: #5a9e6f;
+    --target: #d8875a;
+    --target-edge: #a55a2e;
+    --keep: #6a9bd8;
+    --keep-edge: #40719f;
+    --neutral: #6e6659;
+    --neutral-edge: #55503f;
+    --accent: #e07a5c;
+    --gap: #e07a5c;
+    --cat: #6e6662;
+    --cat-dark: #4c4642;
+    --cat-eye: #dfd25a;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.42), transparent 32%),
+    var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px 24px;
+  user-select: none;
+  /* the page scrolls normally (How-to + footer must be reachable on
+     phones); only the game zone below captures touch gestures       */
+  touch-action: pan-y;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 28%, rgba(255,255,255,.46), transparent 36%),
+    linear-gradient(90deg, transparent 0 49.6%, rgba(150,118,78,.08) 49.6% 50.4%, transparent 50.4%),
+    repeating-linear-gradient(0deg, rgba(126,94,61,.09) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(126,94,61,.08) 0 1px, transparent 1px 54px);
+  opacity: .7;
+}
+body::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 86px;
+  width: min(760px, 92vw);
+  height: 220px;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 0 0 28px 28px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,255,255,0)),
+    radial-gradient(ellipse at 22% 24%, rgba(247,207,119,.22), transparent 30%),
+    radial-gradient(ellipse at 76% 26%, rgba(116,166,191,.16), transparent 32%);
+  filter: blur(.2px);
+  opacity: .62;
+}
+#kitchenSet {
+  position: fixed;
+  left: 50%;
+  top: 70px;
+  width: min(760px, 94vw);
+  height: 250px;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  opacity: .74;
+}
+#kitchenSet::before {
+  content: "";
+  position: absolute;
+  left: 7%;
+  top: 22px;
+  width: 132px;
+  height: 86px;
+  border: 7px solid color-mix(in srgb, var(--counter-edge) 72%, #fff);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(255,255,255,.65) 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgba(255,255,255,.65) 47% 53%, transparent 53%),
+    radial-gradient(circle at 68% 25%, #ffe1a1 0 12%, transparent 13%),
+    linear-gradient(180deg, #a7d4e7, #e9f5ec 58%, #91b879 59%);
+  box-shadow: 0 10px 22px rgba(52,35,22,.12), inset 0 0 0 2px rgba(255,255,255,.4);
+}
+#kitchenSet::after {
+  content: "";
+  position: absolute;
+  right: 6%;
+  top: 42px;
+  width: 170px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--counter-edge) 70%, #fff), var(--counter-edge));
+  box-shadow:
+    -48px -16px 0 -4px color-mix(in srgb, var(--target) 72%, #fff),
+    -15px -25px 0 -8px color-mix(in srgb, var(--keep) 72%, #fff),
+    36px -18px 0 -5px color-mix(in srgb, var(--neutral) 80%, #fff),
+    0 10px 18px rgba(52,35,22,.14);
+}
+/* the swat surface: cat + counter + floor. Touches here are game input */
+#stage, #catPerch, #floor { touch-action: none; }
+
+header { text-align: center; margin-bottom: 0; }
+h1 { margin: 0; font-size: 1.5rem; letter-spacing: 0.5px; }
+.tagline { margin: 1px 0 0; color: var(--ink-soft); font-size: 0.76rem; }
+
+/* ---------- chip bars ---------- */
+.chipbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.chip {
+  background: var(--card);
+  border: 1.5px solid var(--counter-line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: var(--ink);
+}
+button.chip { cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 600; }
+button.chip:active { transform: translateY(1px); }
+button.chip.on { background: var(--counter); border-color: var(--accent); }
+
+/* ---------- the cat ---------- */
+#catPerch {
+  width: var(--bw);
+  height: calc(var(--bw) * 0.24);
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+}
+#catSvg { width: 100%; height: 100%; overflow: visible; }
+#catSvg .pupil, #catSvg .lid, #catSvg #catPaw, #catSvg #catHead, #catSvg #catMouthSmug, #catSvg #catMouth {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.18s ease, height 0.15s ease, opacity 0.15s;
+}
+#catSvg .furStripe { opacity: .22; stroke: var(--cat-dark); stroke-width: 3; stroke-linecap: round; fill: none; }
+#catSvg .toeBean { fill: var(--accent); opacity: .52; }
+#catSvg .catWhite { fill: rgba(255,255,255,.16); }
+#catSvg .cheek { fill: rgba(255,255,255,.18); }
+#catSvg .whisker { stroke: color-mix(in srgb, var(--ink-soft) 74%, #fff); stroke-width: 1.5; stroke-linecap: round; opacity: .85; }
+#catSvg .pupil { transform: translate(0px, 2.5px); }          /* watching the counter */
+#catSvg .eye ellipse:first-child { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cat-eye) 65%, transparent)); }
+#catSvg #catPaw { transform-origin: 20% 15%; }
+#catSvg #catTail { transform-box: fill-box; transform-origin: left bottom; animation: tailsway 3.4s ease-in-out infinite; }
+@keyframes tailsway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(9deg); }
+}
+#catSvg .lid { height: 0; }
+#catSvg #catMouthSmug { opacity: 0; }
+/* auto-blink while idle */
+#catSvg.idle .lid { animation: autoblink 6.5s infinite; }
+@keyframes autoblink {
+  0%, 91%, 97%, 100% { height: 0; }
+  93%, 95% { height: 22px; }
+}
+/* WIND-UP: paw raised, dead-eye contact with YOU */
+#catSvg.windup .pupil { transform: translate(0px, -1px) scale(1.4); }
+#catSvg.windup #catPaw { transform: translateY(-14px) rotate(-24deg); }
+#catSvg.windup #catHead { transform: rotate(-3deg); }
+/* SWAT: the decisive stroke */
+#catSvg.swat #catPaw { transform: translateY(-2px) rotate(26deg); transition-duration: 0.09s; }
+/* WATCH: eyes track the slide direction (set via --lookx) */
+#catSvg.watch .pupil { transform: translate(var(--lookx, 0px), var(--looky, 3px)); }
+/* SMUG: half-lids + the little smile. zero remorse. */
+#catSvg.smug .lid { height: 11px; }
+#catSvg.smug #catMouth { opacity: 0; }
+#catSvg.smug #catMouthSmug { opacity: 1; }
+/* GRAB: an illegal swat got refused — paw slams protectively */
+#catSvg.grab #catPaw { transform: translateY(6px) rotate(8deg) scale(1.12); transition-duration: 0.08s; }
+#catSvg.grab .pupil { transform: translate(0px, 0px) scale(1.5); }
+
+/* ---------- board ---------- */
+#stage {
+  position: relative;
+  width: var(--bw);
+  aspect-ratio: 1;
+  z-index: 2;
+  /* the counter is a SLAB seen at a slight angle; the swat TILTS it
+     further toward the swipe direction, then it levels back out    */
+  transform: perspective(1100px) rotateX(7deg);
+  transition: transform 0.22s ease;
+  filter: drop-shadow(0 22px 18px rgba(20, 12, 6, 0.26));
+}
+#stage::before {
+  content: "";
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: -12%;
+  height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(35,22,13,.28), transparent 66%);
+  filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
+}
+/* the slab's front face — the counter has thickness now */
+#board::after {
+  content: "";
+  position: absolute;
+  left: -4px; right: -4px;
+  top: 100%;
+  height: 15px;
+  background: linear-gradient(180deg, var(--counter-edge), color-mix(in srgb, var(--counter-edge) 55%, #000));
+  border-radius: 0 0 12px 12px;
+}
+#stage.shake { animation: nudge 0.25s; }
+/* the wall-bump must keep the slab's 3D lean — a bare translateX would
+   flatten the perspective for the whole animation */
+@keyframes nudge {
+  0%,100% { transform: perspective(1100px) rotateX(7deg) translateX(0); }
+  30% { transform: perspective(1100px) rotateX(7deg) translateX(-4px); }
+  70% { transform: perspective(1100px) rotateX(7deg) translateX(4px); }
+}
+
+#board {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  border: 5px solid var(--counter-edge);
+  border-radius: 10px;
+  background: var(--counter);
+  background-image: repeating-linear-gradient(
+    92deg,
+    transparent 0 26px,
+    rgba(120, 84, 40, 0.05) 26px 30px,
+    transparent 30px 61px,
+    rgba(120, 84, 40, 0.035) 61px 64px
+  ),
+  radial-gradient(circle at 20% 12%, rgba(255,255,255,.34), transparent 28%),
+  linear-gradient(180deg, rgba(255,255,255,.32), rgba(103,76,43,.08));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.55), inset 0 -14px 22px rgba(82,55,28,.12);
+}
+.cell { border: 1px solid color-mix(in srgb, var(--counter-line) 82%, transparent); background: transparent; position: relative; }
+.cell.rock {
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255,255,255,.14), transparent 22%),
+    linear-gradient(150deg, color-mix(in srgb, var(--clutter) 84%, #fff), var(--clutter) 52%, color-mix(in srgb, var(--clutter) 72%, #000));
+  border-color: var(--clutter);
+  border-radius: 10px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.12), inset 0 -5px 0 rgba(0,0,0,0.32), 0 7px 8px rgba(0,0,0,0.32);
+}
+.cell.nest::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: 3px dashed var(--nest);
+  border-radius: 50%;
+  opacity: 0.9;
+}
+
+/* open gaps in the counter edge — things fall out here */
+.gap-notch {
+  position: absolute;
+  background: linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 88%, #000));
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gap);
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255,255,255,.55);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.12);
+}
+
+/* pieces float above the grid and glide by transform */
+#pieces { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+#laneFocus {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--accent) 82%, #fff);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.02), 0 0 18px color-mix(in srgb, var(--accent) 42%, transparent);
+  opacity: 0;
+  transition: opacity 0.12s ease, left 0.12s ease, top 0.12s ease, width 0.12s ease, height 0.12s ease;
+}
+#laneFocus.on { opacity: 1; }
+.piece {
+  position: absolute;
+  top: 0; left: 0;
+  will-change: transform;
+  transition-property: transform, opacity;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.3, 1);  /* glide, then stop */
+}
+.piece .body {
+  position: absolute;
+  inset: 7%;
+  border-radius: 22%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 8px rgba(20, 12, 6, 0.22), 0 2px 2px rgba(20,12,6,.18), inset 0 2px 0 rgba(255,255,255,.26);
+  transform-origin: 50% 64%;
+  overflow: visible;
+}
+.piece .body::before {
+  content: "";
+  position: absolute;
+  inset: 7% 9% auto 12%;
+  height: 24%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.piece .body::after {
+  content: "";
+  position: absolute;
+  left: 16%; right: 16%; bottom: -12%;
+  height: 15%;
+  border-radius: 999px;
+  background: rgba(36,24,14,.22);
+  filter: blur(3px);
+  z-index: -1;
+}
+.piece .body svg { width: 82%; height: 82%; display: block; filter: drop-shadow(0 1px 0 rgba(255,255,255,.28)) drop-shadow(0 2px 1px rgba(0,0,0,.18)); }
+.piece.item-keys .body svg,
+.piece.item-jigsaw .body svg,
+.piece.item-coaster .body svg,
+.piece.item-cap .body svg { width: 88%; height: 88%; }
+/* yarn balls: the winding fills the whole ball, loose thread pokes out */
+.piece.keep .body svg { width: 100%; height: 100%; overflow: visible; }
+.piece.duck .body    { background: var(--duck); border: 2.5px solid var(--duck-edge); }
+.piece.acorn .body   { background: var(--acorn, #9c8877); border-radius: 50%; inset: 18%; }
+.piece.target .body  {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,245,219,.46), transparent 26%),
+    linear-gradient(145deg, color-mix(in srgb, var(--target) 84%, #fff), var(--target) 55%, color-mix(in srgb, var(--target-edge) 88%, #000));
+  border: 2.5px solid var(--target-edge);
+  color: #fff7ee;
+}
+.piece.item-phone .body,
+.piece.item-remote .body,
+.piece.item-keyboard .body,
+.piece.item-laptop .body {
+  border-radius: 15%;
+  inset: 9% 15%;
+}
+.piece.item-keys .body,
+.piece.item-cap .body,
+.piece.item-coaster .body {
+  border-radius: 50%;
+  inset: 18%;
+}
+.piece.item-glass .body,
+.piece.item-wine .body,
+.piece.item-saltshkr .body,
+.piece.item-candle .body,
+.piece.item-snowglobe .body {
+  border-radius: 34% 34% 24% 24%;
+  inset: 6% 16% 9%;
+}
+.piece.item-mug .body,
+.piece.item-catmug .body {
+  border-radius: 30% 24% 24% 30%;
+  inset: 8% 11%;
+}
+.piece.item-frame .body,
+.piece.item-book .body,
+.piece.item-jigsaw .body {
+  border-radius: 12%;
+  inset: 9%;
+}
+.piece.item-vase .body,
+.piece.item-plant .body,
+.piece.item-cactus .body {
+  border-radius: 42% 42% 24% 24%;
+  inset: 5% 18% 8%;
+}
+/* yarn fills its whole cell — visibly BIGGER than the edge gaps */
+.piece.keep .body    {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255,255,255,.42), transparent 24%),
+    radial-gradient(circle at 65% 72%, rgba(30,68,115,.24), transparent 38%),
+    linear-gradient(145deg, color-mix(in srgb, var(--keep) 82%, #fff), var(--keep) 54%, color-mix(in srgb, var(--keep-edge) 88%, #000));
+  border: 3px solid var(--keep-edge);
+  border-radius: 50%;
+  color: #f2f7ff;
+  inset: 0%;
+}
+.piece.neutral .body {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.30), transparent 25%),
+    linear-gradient(145deg, color-mix(in srgb, var(--neutral) 86%, #fff), var(--neutral) 55%, color-mix(in srgb, var(--neutral-edge) 86%, #000));
+  border: 2px solid var(--neutral-edge);
+  inset: 14%;
+  border-radius: 30%;
+  color: #fffdf4;
+}
+.piece.mat-glass .body {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.42), rgba(143,206,232,.36) 42%, rgba(77,132,164,.30)),
+    linear-gradient(145deg, color-mix(in srgb, var(--target) 72%, #fff), var(--target));
+}
+.piece.mat-tech .body {
+  background:
+    linear-gradient(145deg, #f08e5f, #d66f43 50%, #9d492c);
+}
+.piece.mat-metal .body {
+  background:
+    linear-gradient(145deg, #e19a6a, #c96d42 52%, #8e4028);
+}
+.piece.mat-paper .body {
+  background:
+    linear-gradient(145deg, #f4b07c, #d77c4d 55%, #9b4c31);
+}
+
+/* Bespoke object skins: these stop targets from reading as generic icon tiles. */
+.piece:is(.item-catmug,.item-mug,.item-keys,.item-cap,.item-glass,.item-phone,.item-frame,.item-book,.item-vase,.item-plant,.item-cactus,.item-candle,.item-wine,.item-remote,.item-jigsaw) .body svg {
+  display: none;
+}
+.piece:is(.item-catmug,.item-mug,.item-keys,.item-cap,.item-glass,.item-phone,.item-frame,.item-book,.item-vase,.item-plant,.item-cactus,.item-candle,.item-wine,.item-remote,.item-jigsaw) .body {
+  color: transparent;
+}
+.piece.item-mug .body,
+.piece.item-catmug .body {
+  background:
+    radial-gradient(circle at 33% 24%, rgba(255,255,255,.82), transparent 20%),
+    linear-gradient(180deg, #fff2d4, #d98555 58%, #9d4a2f);
+  border-color: #8c442d;
+  border-radius: 32% 28% 24% 26%;
+}
+.piece.item-mug .body::before,
+.piece.item-catmug .body::before {
+  inset: 15% 18% auto 18%;
+  height: 12%;
+  border-radius: 999px;
+  background: rgba(86,45,31,.28);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.65);
+}
+.piece.item-mug .body::after,
+.piece.item-catmug .body::after {
+  content: "";
+  z-index: 0;
+  left: auto;
+  right: -24%;
+  top: 30%;
+  width: 34%;
+  height: 38%;
+  border: 5px solid #a45435;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: transparent;
+  filter: none;
+  box-shadow: 2px 3px 4px rgba(34,22,13,.18);
+}
+.piece.item-catmug .body .bodyDecal,
+.piece.item-mug .body .bodyDecal { display: none; }
+.piece.item-catmug .body { --decal: "♥"; }
+.piece.item-mug .body { --decal: "☕"; }
+.piece.item-catmug .body > span,
+.piece.item-mug .body > span { display: none; }
+.piece.item-catmug .body::marker,
+.piece.item-mug .body::marker { content: ""; }
+.piece.item-catmug .body {
+  box-shadow: 0 8px 8px rgba(20, 12, 6, 0.22), 0 2px 2px rgba(20,12,6,.18), inset 0 2px 0 rgba(255,255,255,.34);
+}
+.piece.item-catmug .body { background:
+  radial-gradient(circle at 33% 24%, rgba(255,255,255,.82), transparent 20%),
+  radial-gradient(circle at 50% 56%, #d95f5f 0 12%, transparent 13%),
+  linear-gradient(180deg, #fff2d4, #d98555 58%, #9d4a2f);
+}
+.piece.item-keys .body {
+  inset: 15%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 44% 43%, transparent 0 25%, #f8dd91 26% 45%, #b9872f 46% 62%, transparent 63%),
+    linear-gradient(135deg, transparent 0 49%, #e2b857 50% 63%, transparent 64%);
+  border-color: #9f7428;
+}
+.piece.item-keys .body::before {
+  inset: 48% -18% auto 48%;
+  width: 62%;
+  height: 18%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f7d77a, #9b6c21);
+  transform: rotate(42deg);
+  box-shadow: 16px 0 0 -5px #9b6c21, 25px 0 0 -6px #f7d77a;
+}
+.piece.item-keys .body::after {
+  left: 8%;
+  right: auto;
+  bottom: 10%;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: #bd7c3f;
+  filter: none;
+  z-index: 0;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.34);
+}
+.piece.item-cap .body,
+.piece.item-coaster .body {
+  background:
+    repeating-conic-gradient(from 0deg, #f2b078 0 12deg, #b85835 12deg 24deg),
+    radial-gradient(circle, #f8d0a4 0 42%, #bf613b 43% 100%);
+  border-radius: 50%;
+  border-color: #8c442d;
+}
+.piece.item-cap .body::before,
+.piece.item-coaster .body::before {
+  inset: 22%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.52), transparent 28%), #cf6f45;
+}
+.piece.item-glass .body,
+.piece.item-wine .body {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.78), rgba(178,228,244,.32) 22%, rgba(99,171,199,.34) 80%, rgba(255,255,255,.62)),
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(115,185,210,.42));
+  border-color: rgba(81,143,166,.75);
+  border-radius: 42% 42% 22% 22%;
+}
+.piece.item-glass .body::before,
+.piece.item-wine .body::before {
+  inset: 18% 14% auto;
+  height: 18%;
+  border-radius: 50%;
+  background: rgba(255,255,255,.68);
+  box-shadow: 0 13px 0 rgba(99,171,199,.22);
+}
+.piece.item-phone .body,
+.piece.item-remote .body {
+  background: linear-gradient(145deg, #333e4b, #111820 62%, #05080b);
+  border-color: #07090c;
+  border-radius: 16%;
+}
+.piece.item-phone .body::before,
+.piece.item-remote .body::before {
+  inset: 10% 13% 18%;
+  height: auto;
+  border-radius: 8%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.40), transparent 35%),
+    linear-gradient(145deg, #96d6f4, #316b96);
+}
+.piece.item-phone .body::after,
+.piece.item-remote .body::after {
+  left: 42%;
+  right: 42%;
+  bottom: 8%;
+  height: 5%;
+  border-radius: 999px;
+  background: #d9e6ee;
+  filter: none;
+  z-index: 1;
+}
+.piece.item-frame .body,
+.piece.item-book .body,
+.piece.item-jigsaw .body {
+  background: linear-gradient(145deg, #9b6541, #5b3523);
+  border-color: #482817;
+  border-radius: 10%;
+}
+.piece.item-frame .body::before,
+.piece.item-book .body::before,
+.piece.item-jigsaw .body::before {
+  inset: 14%;
+  height: auto;
+  border-radius: 6%;
+  background:
+    radial-gradient(circle at 30% 28%, #f0c36f 0 10%, transparent 11%),
+    linear-gradient(135deg, #91bfd6 0 46%, #7aa56d 47% 100%);
+  border: 2px solid #f3dfbd;
+}
+.piece.item-vase .body,
+.piece.item-plant .body,
+.piece.item-cactus .body {
+  background:
+    radial-gradient(circle at 36% 24%, rgba(255,255,255,.62), transparent 18%),
+    linear-gradient(180deg, #e9a269, #b85a35 62%, #7e3525);
+  border-color: #803823;
+  border-radius: 48% 48% 22% 22%;
+}
+.piece.item-plant .body::before,
+.piece.item-cactus .body::before {
+  inset: -24% 16% auto;
+  height: 52%;
+  border-radius: 50% 50% 18% 18%;
+  background:
+    radial-gradient(ellipse at 28% 72%, #4f9b62 0 28%, transparent 29%),
+    radial-gradient(ellipse at 52% 52%, #5db572 0 34%, transparent 35%),
+    radial-gradient(ellipse at 76% 72%, #3f8e54 0 28%, transparent 29%);
+  filter: drop-shadow(0 2px 2px rgba(28,61,38,.2));
+}
+.piece.item-candle .body {
+  background:
+    radial-gradient(circle at 50% 12%, #ffd36d 0 9%, transparent 10%),
+    linear-gradient(90deg, rgba(255,255,255,.72), rgba(178,228,244,.28) 24%, rgba(105,166,190,.24)),
+    linear-gradient(180deg, rgba(255,255,255,.68), rgba(105,166,190,.38));
+  border-color: rgba(84,143,166,.72);
+}
+.piece.sliding .body { animation: slidewobble var(--slide-ms, 260ms) ease-in-out; }
+.piece.mat-glass.sliding .body { animation-name: glasswobble; }
+.piece.mat-tech.sliding .body { animation-name: techwobble; }
+.piece.mat-metal.sliding .body { animation-name: metalwobble; }
+.piece.mat-paper.sliding .body { animation-name: paperflutter; }
+.piece.target:not(.sliding):not(.falling) .body { animation: tinytempt 4.8s ease-in-out infinite; }
+.piece.target:nth-child(3n) .body { animation-delay: -1.6s; }
+.piece.target:nth-child(4n) .body { animation-delay: -3.1s; }
+@keyframes tinytempt {
+  0%, 88%, 100% { transform: translateY(0) rotate(0deg); }
+  91% { transform: translateY(-1.5px) rotate(-2deg); }
+  94% { transform: translateY(0) rotate(1deg); }
+}
+@keyframes slidewobble {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  24% { transform: rotate(-5deg) translateY(-2px); }
+  58% { transform: rotate(4deg) translateY(1px); }
+}
+@keyframes glasswobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  30% { transform: rotate(-7deg) scale(1.03, 0.98); }
+  65% { transform: rotate(6deg) scale(0.98, 1.03); }
+}
+@keyframes techwobble {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  40% { transform: rotate(3deg) translateY(-1px); }
+  72% { transform: rotate(-2deg) translateY(0); }
+}
+@keyframes metalwobble {
+  0%, 100% { transform: rotate(0deg); }
+  34% { transform: rotate(-3deg); }
+  68% { transform: rotate(2deg); }
+}
+@keyframes paperflutter {
+  0%, 100% { transform: rotate(0deg) skew(0deg); }
+  28% { transform: rotate(-9deg) skew(-3deg); }
+  62% { transform: rotate(7deg) skew(2deg); }
+}
+/* the bonk: yarn squashes against a gap it can't fit through */
+.piece.bonk .body { animation: bonksquash 0.32s ease-out; }
+@keyframes bonksquash {
+  40% { transform: scale(1.14, 0.8); }
+  70% { transform: scale(0.94, 1.05); }
+}
+.piece.settled .body {
+  background: var(--settled);
+  border-color: var(--settled);
+  border-radius: 50%;
+  animation: sit 0.45s;
+}
+@keyframes sit {
+  0% { transform: scale(1.25); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+/* ♥ badge: this one is the cat's own — it will NEVER hit the floor */
+.piece .mine {
+  position: absolute;
+  top: -10%; right: -10%;
+  width: 40%; height: 40%;
+  background: var(--keep-edge);
+  border: 1.5px solid var(--card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12%;
+}
+.piece .mine svg { width: 100%; height: 100%; display: block; }
+.piece.minepulse .body { animation: minebounce 0.45s ease 2; }
+@keyframes minebounce {
+  50% { transform: scale(1.2); }
+}
+
+/* teeter: the beat on the brink before a piece drops (the pause IS the joke) */
+.piece.teeter .body { animation: teeter 0.42s ease-in-out; }
+@keyframes teeter {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-12deg) translateY(-2px); }
+  48% { transform: rotate(13deg) translateY(1px); }
+  72% { transform: rotate(-7deg); }
+}
+.piece.falling { opacity: 0; }
+.piece.falling .body { animation: fallspin var(--fall-ms, 260ms) ease-in forwards; }
+.piece.falling.mat-glass .body { animation-name: glassfall; }
+.piece.falling.mat-paper .body { animation-name: paperfall; }
+@keyframes fallspin {
+  0% { transform: rotate(0deg) scale(1); filter: blur(0); }
+  100% { transform: rotate(var(--fall-rot, 120deg)) scale(0.52); filter: blur(0.6px); }
+}
+@keyframes glassfall {
+  0% { transform: rotate(0deg) scale(1); }
+  55% { transform: rotate(calc(var(--fall-rot, 120deg) * .55)) scale(0.82); }
+  100% { transform: rotate(var(--fall-rot, 120deg)) scale(0.45); }
+}
+@keyframes paperfall {
+  0% { transform: rotate(0deg) translateY(0) scale(1); }
+  45% { transform: rotate(-18deg) translateY(-5px) scale(0.9); }
+  100% { transform: rotate(var(--fall-rot, 90deg)) translateY(12px) scale(0.62); }
+}
+.piece.hidden { display: none; }
+
+/* ---------- the interactive paw: the cat reaches INTO the board ---------- */
+#pawOverlay {
+  position: absolute;
+  width: 17%;
+  height: 30%;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.16s ease-out;
+}
+#pawOverlay.act { opacity: 1; }
+
+/* combo banner — two crashes in one swat deserves a headline */
+#comboBanner {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%) scale(0.6);
+  z-index: 7;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-shadow: 0 2px 0 var(--card), 0 4px 10px rgba(0,0,0,0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+#comboBanner.pop { animation: combopop 1.1s ease-out; }
+@keyframes combopop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  30% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+/* ---------- ambient interruptions (cosmetic, never punishing) ---------- */
+#redDot {
+  position: absolute;
+  width: 4.5%;
+  height: 4.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #ff6b5e, #e01e10 65%);
+  box-shadow: 0 0 12px 4px rgba(255, 40, 20, 0.55);
+  z-index: 8;
+  pointer-events: auto;
+  cursor: pointer;
+  display: none;
+  transition: left 0.5s ease-in-out, top 0.5s ease-in-out;
+}
+#redDot.on { display: block; animation: dotpulse 0.8s infinite; }
+@keyframes dotpulse {
+  50% { box-shadow: 0 0 16px 6px rgba(255, 40, 20, 0.75); }
+}
+#bird {
+  position: fixed;
+  top: 44px;
+  left: -60px;
+  width: 44px;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+#bird.fly { animation: birdfly 3.2s linear forwards; }
+@keyframes birdfly {
+  0% { transform: translateX(0) translateY(0); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translateX(60vw) translateY(-14px); }
+  92% { opacity: 1; }
+  100% { transform: translateX(120vw) translateY(-6px); opacity: 0; }
+}
+
+/* achievements strip in the gallery */
+#achList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 8px 0;
+  text-align: left;
+  font-size: 0.74rem;
+}
+#achList .ach {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1.5px solid var(--counter-line);
+  border-radius: 8px;
+  padding: 5px 9px;
+  color: var(--ink-soft);
+}
+#achList .ach.earned { color: var(--ink); border-color: var(--accent); }
+#achList .ach .medal { font-size: 1rem; filter: grayscale(1); opacity: 0.4; }
+#achList .ach.earned .medal { filter: none; opacity: 1; }
+#achList .ach b { display: block; font-size: 0.76rem; }
+
+/* crash shards where a piece left the counter */
+.shard {
+  position: absolute;
+  z-index: 5;
+  width: var(--shard-size, 7px); height: var(--shard-size, 7px);
+  border-radius: 2px;
+  pointer-events: none;
+  box-shadow: 0 2px 3px rgba(0,0,0,0.16);
+  animation: shardfly var(--shard-life, 0.65s) ease-out forwards;
+}
+@keyframes shardfly {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(var(--sx), var(--sy)) rotate(var(--sr, 220deg)) scale(0.55); opacity: 0; }
+}
+.puff {
+  position: absolute;
+  z-index: 4;
+  width: 28px; height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--counter-edge) 28%, transparent);
+  filter: blur(1px);
+  pointer-events: none;
+  animation: puffout 0.48s ease-out forwards;
+}
+@keyframes puffout {
+  0% { transform: translate(-50%, -50%) scale(0.35); opacity: 0.55; }
+  100% { transform: translate(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 8px))) scale(1.35); opacity: 0; }
+}
+.breakBit {
+  position: absolute;
+  z-index: 6;
+  left: var(--bx);
+  top: var(--by);
+  width: var(--bwbit, 18px);
+  height: var(--bhbit, 18px);
+  display: grid;
+  place-items: center;
+  border-radius: var(--brbit, 6px);
+  color: var(--bit-ink, #fff7ee);
+  background: var(--bit-bg, var(--target));
+  border: 1px solid color-mix(in srgb, var(--bit-bg, var(--target)) 72%, #2b1b12);
+  box-shadow: 0 5px 8px rgba(34,22,13,.22), inset 0 1px 0 rgba(255,255,255,.28);
+  font-size: var(--bitsize, 12px);
+  font-weight: 900;
+  pointer-events: none;
+  animation: bitfly var(--bitlife, .74s) cubic-bezier(.18,.72,.2,1) forwards;
+}
+@keyframes bitfly {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(.72); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(.45); opacity: 0; }
+}
+.crashCallout {
+  position: absolute;
+  z-index: 8;
+  left: var(--cx);
+  top: var(--cy);
+  transform: translate(-50%, -50%);
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(48,34,24,.9);
+  color: #fff8ea;
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 8px 18px rgba(31,20,12,.24);
+  font-size: .72rem;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: calloutpop .86s ease-out forwards;
+}
+@keyframes calloutpop {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.72); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -85%) scale(.94); }
+}
+
+/* ---------- the floor: where knocked-off stuff piles up ---------- */
+#floor {
+  width: var(--bw);
+  margin-top: 8px;
+  min-height: 40px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0,0,0,.10), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card) 95%, var(--counter-edge)), var(--card));
+  border: 1.5px solid var(--counter-line);
+  border-radius: 10px;
+  padding: 5px 44px 5px 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 6px 16px rgba(32,22,13,.10);
+}
+#floor .debris {
+  width: 23px; height: 23px;
+  color: var(--target-edge);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.18));
+  background: color-mix(in srgb, var(--target) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--target-edge) 35%, transparent);
+  border-radius: 7px;
+  padding: 2px;
+  transform: rotate(14deg);
+  animation: land 0.35s ease-out;
+}
+#floor .debris svg { width: 100%; height: 100%; }
+#floor .debris:nth-child(even) { transform: rotate(-21deg) translateY(2px); }
+@keyframes land {
+  0% { transform: translateY(-20px) rotate(50deg); opacity: 0.4; }
+  100% { transform: translateY(0) rotate(14deg); opacity: 1; }
+}
+#floor.hiddenrow { display: none; }
+/* the human's hand — reaches in when something crashes, too late */
+#hand {
+  position: absolute;
+  right: 4px;
+  bottom: -34px;
+  width: 34px; height: 44px;
+  transition: transform 0.18s ease-in;
+  pointer-events: none;
+}
+#hand.lunge { animation: lunge 0.8s ease-out; }
+@keyframes lunge {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-30px) rotate(-8deg); }
+  45% { transform: translateY(-26px) rotate(6deg); }
+  100% { transform: translateY(0); }
+}
+#handQuip {
+  position: absolute;
+  right: 40px;
+  bottom: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--bad);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#handQuip.show { opacity: 1; }
+
+/* ---------- controls ---------- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  width: var(--bw);
+}
+.controls button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--counter-line);
+  border-radius: 12px;
+  padding: 7px 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--counter-line);
+  transition: transform 0.05s;
+}
+.controls button:active { transform: translateY(2px); box-shadow: none; }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- how to play ---------- */
+details {
+  width: var(--bw);
+  margin-top: 8px;
+  background: var(--card);
+  border: 1.5px solid var(--counter-line);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+summary { cursor: pointer; font-weight: 700; }
+details li { margin: 5px 0; }
+.mission {
+  width: var(--bw);
+  margin: 7px auto 0;
+  background: color-mix(in srgb, var(--card) 88%, var(--accent));
+  border: 1.5px solid var(--counter-line);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.mission b { color: var(--ink); }
+.mission.done { border-color: var(--accent); background: var(--card); }
+.starterGuide {
+  width: var(--bw);
+  margin: 8px auto 0;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--card) 92%, var(--keep));
+  border: 1.5px solid color-mix(in srgb, var(--keep) 46%, var(--counter-line));
+  border-left: 4px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 5px 12px rgba(64, 49, 35, 0.08);
+}
+.starterGuideHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.starterGuideEyebrow {
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.starterGuideStatus {
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: right;
+}
+.starterGuideSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.starterGuideSteps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+.starterGuideSteps b {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+}
+#stage.starter-mode .gap-notch {
+  outline: 2px solid color-mix(in srgb, var(--accent) 76%, #fff);
+  outline-offset: 2px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.12), 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+#stage.starter-mode .piece.target .body {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+#stage.starter-mode .piece.keep .body {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--keep) 34%, #fff);
+}
+.briefCat {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  margin: 8px 0 12px;
+}
+.briefCat .face {
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--counter);
+  border: 2px solid var(--counter-line);
+  font-size: 3rem;
+}
+.briefCat ol { margin: 0; padding-left: 20px; }
+.briefCat li { margin: 4px 0; }
+.shareText {
+  margin: 8px 0 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  text-align: left;
+  user-select: text;
+}
+
+/* ---------- overlays ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 10, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.overlay.show { display: flex; }
+.bigCard {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px 24px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  animation: pop 0.35s;
+  max-width: min(92vw, 420px);
+  max-height: 84vh;
+  overflow-y: auto;
+}
+@keyframes pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.bigCard h2 { margin: 0 0 2px; font-size: 1.35rem; }
+.bigCard .stars { font-size: 1.8rem; letter-spacing: 4px; margin: 4px 0 2px; }
+.bigCard p { margin: 0 0 12px; color: var(--ink-soft); font-size: 0.88rem; }
+.bigCard .winGuide {
+  margin: 10px 0 2px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--keep) 42%, var(--counter-line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card) 89%, var(--keep));
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: left;
+}
+.bigCard button {
+  font: inherit; font-weight: 600;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 12px;
+  padding: 9px 16px; cursor: pointer;
+  margin: 4px 4px 0;
+}
+.bigCard button.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--counter-line); }
+
+/* damage report receipt */
+#receipt {
+  text-align: left;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+  background: var(--bg);
+  border: 1.5px dashed var(--counter-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0 10px;
+}
+#receipt .rline { display: flex; justify-content: space-between; gap: 12px; }
+#receipt .rline .ricon { width: 15px; height: 15px; display: inline-block; vertical-align: -2px; color: var(--target-edge); }
+#receipt .rtotal { border-top: 1.5px dashed var(--counter-line); margin-top: 6px; padding-top: 6px; font-weight: 700; }
+
+/* gallery */
+#galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+#galleryGrid .gitem {
+  background: var(--bg);
+  border: 1.5px solid var(--counter-line);
+  border-radius: 10px;
+  padding: 7px 3px 4px;
+  text-align: center;
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+}
+#galleryGrid .gitem .gicon { width: 26px; height: 26px; margin: 0 auto; color: var(--target-edge); }
+#galleryGrid .gitem.locked .gicon { opacity: 0.22; filter: grayscale(1); }
+#galleryGrid .gitem b { display: block; color: var(--ink); font-size: 0.68rem; }
+
+/* ---------- toast ---------- */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 12;
+  max-width: 88vw;
+  text-align: center;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* board fetching spinner (daily generation) */
+#board .fetching {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+#board .fetching .paw { font-size: 2rem; animation: pawwave 0.9s ease-in-out infinite; }
+@keyframes pawwave {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
+}
+
+footer { margin-top: 8px; font-size: 0.66rem; color: var(--ink-soft); }
+.hidden { display: none !important; }
+.shelfLink {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 20;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, .92);
+  color: inherit;
+  text-decoration: none;
+  font-weight: 850;
+  font-size: .78rem;
+  border: 1.5px solid rgba(127, 109, 87, .42);
+  box-shadow: 0 6px 18px rgba(45, 35, 24, .14);
+}
+@media (max-width: 520px) { .shelfLink { position: static; margin: 8px auto 0; } }
+</style>
+</head>
+<body>
+<div id="kitchenSet" aria-hidden="true"></div>
+<a class="shelfLink" href="../index.html">← All games</a>
+
+<header>
+  <h1 id="gameTitle">🐱 Counter Cat</h1>
+  <p class="tagline" id="gameTag">bap · slide · crash · slow blink</p>
+</header>
+
+<div class="chipbar">
+  <button class="chip" id="btnDaily" title="report for today's cat duty">📅 Cat Duty</button>
+  <button class="chip" id="btnGallery" title="floor inventory and achievements">🏆 Floor <span id="galleryCount">0</span></button>
+  <button class="chip" id="btnExpert" title="expert baps: only the chosen row or column moves">🎯 Expert</button>
+  <button class="chip" id="btnTheme" title="light / dark">🌙</button>
+  <button class="chip" id="btnSound" title="sound on / off">🔊</button>
+  <button class="chip" id="btnFast" title="fast mode: business cat">⚡</button>
+</div>
+<div class="chipbar">
+  <span class="chip" id="chipLevel">Level 1</span>
+  <span class="chip" id="chipSize">6×6</span>
+  <span class="chip"><span id="movesLabel">Swats</span> <b id="chipMoves">0</b> / Par <b id="chipPar">–</b></span>
+  <span class="chip" id="chipBest" title="your best on this level">☆</span>
+</div>
+
+<div id="dailyPanel" class="mission">
+  <b id="missionTitle">Counter inspection</b>
+  <span id="missionText">Relocate the evidence. Protect the yarn. Deny everything.</span>
+</div>
+
+<div id="catPerch">
+  <svg id="catSvg" class="idle" viewBox="0 0 240 120" aria-hidden="true">
+    <defs>
+      <radialGradient id="catBodyGrad" cx="35%" cy="24%" r="78%">
+        <stop offset="0" stop-color="#837b76"/>
+        <stop offset=".48" stop-color="var(--cat)"/>
+        <stop offset="1" stop-color="var(--cat-dark)"/>
+      </radialGradient>
+      <radialGradient id="catHeadGrad" cx="36%" cy="26%" r="74%">
+        <stop offset="0" stop-color="#8d8580"/>
+        <stop offset=".56" stop-color="var(--cat)"/>
+        <stop offset="1" stop-color="var(--cat-dark)"/>
+      </radialGradient>
+      <linearGradient id="catTailGrad" x1="190" y1="108" x2="226" y2="52" gradientUnits="userSpaceOnUse">
+        <stop stop-color="var(--cat-dark)"/>
+        <stop offset=".42" stop-color="var(--cat)"/>
+        <stop offset="1" stop-color="#827973"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="145" cy="110" rx="70" ry="10" fill="#000" opacity=".15"/>
+    <g id="catTail">
+      <path d="M192 104 q 38 -6 33 -43 q-2 -13 -11 -12 q-8 2 -5 13 q5 22 -17 31" fill="none" stroke="url(#catTailGrad)" stroke-width="13" stroke-linecap="round"/>
+      <path d="M207 76 q9 -7 9 -21" class="furStripe"/>
+    </g>
+    <ellipse cx="146" cy="99" rx="64" ry="27" fill="url(#catBodyGrad)"/>
+    <path d="M96 96 q44 -30 101 -3 q-8 22 -53 23 q-32 0 -48 -20 z" fill="var(--cat-dark)" opacity=".34"/>
+    <path d="M106 83 q20 -11 52 -8 q29 3 44 16 q-28 -4 -56 1 q-26 4 -40 -9 z" class="catWhite"/>
+    <path d="M124 96 v12 M135 94 v15 M146 94 v16" class="furStripe"/>
+    <g id="catHead">
+      <path d="M55 52 L44 19 L76 36 Z" fill="url(#catHeadGrad)"/>
+      <path d="M60 47 L54 30 L72 39 Z" fill="var(--accent)" opacity="0.55"/>
+      <path d="M117 52 L128 19 L96 36 Z" fill="url(#catHeadGrad)"/>
+      <path d="M112 47 L119 30 L100 39 Z" fill="var(--accent)" opacity="0.55"/>
+      <circle cx="86" cy="66" r="37" fill="url(#catHeadGrad)"/>
+      <path d="M57 60 q10 -27 42 -26 q-12 7 -18 22 q-8 21 7 43 q-31 -2 -36 -29 q-1 -5 5 -10 z" fill="#fff" opacity=".08"/>
+      <path d="M72 35 q5 10 3 19 M99 35 q-5 10 -3 19 M86 31 q0 12 0 21" class="furStripe"/>
+      <ellipse cx="70" cy="77" rx="13" ry="9" class="cheek"/>
+      <ellipse cx="102" cy="77" rx="13" ry="9" class="cheek"/>
+      <g class="eye">
+        <ellipse cx="72" cy="62" rx="9.5" ry="11" fill="var(--cat-eye)"/>
+        <ellipse class="pupil" cx="72" cy="62" rx="2.6" ry="8" fill="#26221f"/>
+        <circle cx="69" cy="58" r="1.8" fill="#fff" opacity=".85"/>
+        <rect class="lid" x="61" y="50" width="22" height="0" rx="4" fill="var(--cat)"/>
+      </g>
+      <g class="eye">
+        <ellipse cx="100" cy="62" rx="9.5" ry="11" fill="var(--cat-eye)"/>
+        <ellipse class="pupil" cx="100" cy="62" rx="2.6" ry="8" fill="#26221f"/>
+        <circle cx="97" cy="58" r="1.8" fill="#fff" opacity=".85"/>
+        <rect class="lid" x="89" y="50" width="22" height="0" rx="4" fill="var(--cat)"/>
+      </g>
+      <path d="M82 75 q4 -3 8 0 q-1 4 -4 5 q-3 -1 -4 -5 z" fill="#2b2420"/>
+      <path id="catMouth" d="M80 84 q6 4 12 0" fill="none" stroke="#26221f" stroke-width="2" stroke-linecap="round"/>
+      <path id="catMouthSmug" d="M80 84 q6 7 13 -2" fill="none" stroke="#26221f" stroke-width="2.4" stroke-linecap="round"/>
+      <g class="whisker">
+        <line x1="54" y1="70" x2="28" y2="64"/><line x1="53" y1="76" x2="27" y2="76"/><line x1="55" y1="82" x2="31" y2="89"/>
+        <line x1="118" y1="70" x2="144" y2="64"/><line x1="119" y1="76" x2="145" y2="76"/><line x1="117" y1="82" x2="141" y2="89"/>
+      </g>
+    </g>
+    <g id="catPaw">
+      <rect x="111" y="78" width="22" height="40" rx="10" fill="url(#catBodyGrad)"/>
+      <ellipse cx="122" cy="115" rx="12" ry="7" fill="var(--cat)" stroke="var(--cat-dark)" stroke-width="1.4"/>
+      <circle class="toeBean" cx="117" cy="113" r="1.8"/>
+      <circle class="toeBean" cx="122" cy="112" r="1.8"/>
+      <circle class="toeBean" cx="127" cy="113" r="1.8"/>
+      <path d="M116 105 q6 3 12 0" class="furStripe"/>
+    </g>
+  </svg>
+</div>
+
+<aside id="starterGuide" class="starterGuide" aria-labelledby="starterGuideLabel" hidden>
+  <div class="starterGuideHead">
+    <span class="starterGuideEyebrow" id="starterGuideLabel">Case 01 guide</span>
+    <span class="starterGuideStatus" id="starterGuideStatus" aria-live="polite"></span>
+  </div>
+  <ol class="starterGuideSteps">
+    <li><b>1</b><span>Find the arrow exits.</span></li>
+    <li><b>2</b><span>Swipe or use arrow keys.</span></li>
+    <li><b>3</b><span>Yarn is safe. Undo is free.</span></li>
+  </ol>
+</aside>
+
+<div id="stage">
+  <div id="board"></div>
+  <div id="pieces"></div>
+  <div id="laneFocus"></div>
+  <svg id="pawOverlay" viewBox="0 0 60 110" aria-hidden="true">
+    <rect x="18" y="34" width="24" height="76" rx="11" fill="var(--cat)"/>
+    <circle cx="30" cy="26" r="17" fill="var(--cat)"/>
+    <line x1="22" y1="12" x2="22" y2="19" stroke="var(--cat-dark)" stroke-width="2.5"/>
+    <line x1="30" y1="10" x2="30" y2="17" stroke="var(--cat-dark)" stroke-width="2.5"/>
+    <line x1="38" y1="12" x2="38" y2="19" stroke="var(--cat-dark)" stroke-width="2.5"/>
+  </svg>
+  <div id="comboBanner"></div>
+  <div id="redDot" title="???"></div>
+</div>
+<svg id="bird" viewBox="0 0 40 24" aria-hidden="true">
+  <path d="M4 14 q8 -10 16 -2 q8 -8 16 0 l-6 3 q-10 6 -20 0 z" fill="var(--ink-soft)"/>
+</svg>
+
+<div id="floor" class="hiddenrow">
+  <span id="floorLabel">the floor:</span>
+  <svg id="hand" viewBox="0 0 34 44" aria-hidden="true">
+    <rect x="8" y="16" width="18" height="28" rx="8" fill="#e8b48f"/>
+    <rect x="6" y="8" width="6" height="14" rx="3" fill="#e8b48f"/>
+    <rect x="12" y="5" width="6" height="16" rx="3" fill="#e8b48f"/>
+    <rect x="18" y="6" width="6" height="15" rx="3" fill="#e8b48f"/>
+    <rect x="24" y="9" width="5" height="13" rx="2.5" fill="#e8b48f"/>
+  </svg>
+  <span id="handQuip">NO-</span>
+</div>
+
+<div class="controls">
+  <button id="btnPrev">◀</button>
+  <button id="btnUndo">↩ Undo</button>
+  <button id="btnReset">↻ Reset</button>
+  <button id="btnNext">▶</button>
+</div>
+
+<details id="howto">
+  <summary>How Counter Cat works</summary>
+  <ul id="howtoCat">
+    <li><b>Goal:</b> move every orange human object through an <b style="color:var(--gap)">arrow-marked edge gap</b>.</li>
+    <li><b>Controls:</b> swipe anywhere on the counter or use the arrow keys.</li>
+    <li><b>First cases use Tilt:</b> every movable object slides together. It is the easiest way to learn the room.</li>
+    <li><b>Blue yarn ♥ is protected:</b> it cannot fall. Use it as a shield, bumper, or gap plug.</li>
+    <li>Beige decoys may fall or stay; dark blocks are too heavy to move. Unlimited undo and free reset mean you can test a route safely.</li>
+    <li><b>When you want a harder read,</b> switch to Expert. A swipe then moves only the row or column you choose.</li>
+    <li><b>📅 Cat Duty</b> is one shared counter a day, and <b>🏆 Floor</b> is your evidence locker. Shelf sharing stays optional after a case.</li>
+  </ul>
+</details>
+
+<div class="overlay" id="winOverlay">
+  <div class="bigCard">
+    <h2 id="winTitle">Case file pending</h2>
+    <div class="stars" id="winStars">★★★</div>
+    <div id="receipt" class="hidden"></div>
+    <p id="winSub"></p>
+    <p id="winGuide" class="winGuide" hidden></p>
+    <button class="ghost" id="btnReplay">Replay</button>
+    <button class="ghost" id="btnShare">Copy report</button>
+    <button class="ghost" id="btnShelf">Bring case to Shelf</button>
+    <button id="btnWinNext">Next level →</button>
+    <div id="shareText" class="shareText hidden"></div>
+  </div>
+</div>
+
+<div class="overlay" id="briefOverlay" role="dialog" aria-modal="true" aria-labelledby="briefTitle">
+  <div class="bigCard">
+    <h2 id="briefTitle">🐱 First case briefing</h2>
+    <div class="briefCat">
+      <div class="face">🐱</div>
+      <ol>
+        <li><b>Goal:</b> get every orange human object through an arrow-marked edge gap.</li>
+        <li><b>Move:</b> swipe on the counter or use arrow keys. Case 01 uses Tilt, so every movable object goes together.</li>
+        <li><b>Learn safely:</b> blue yarn ♥ stays safe, and Undo plus Reset are unlimited.</li>
+      </ol>
+    </div>
+    <p>Case 01 keeps these essentials beside the counter. Expert can wait until you want the harder read.</p>
+    <button id="btnBriefStart">Start Case 01</button>
+  </div>
+</div>
+
+<div class="overlay" id="galleryOverlay">
+  <div class="bigCard">
+    <h2>🏆 Floor Inventory</h2>
+    <p id="gallerySub">every item currently in floor custody</p>
+    <div id="galleryGrid"></div>
+    <p id="careerLine" style="font-weight:700; margin:2px 0 8px;"></p>
+    <div id="achList"></div>
+    <button class="ghost" id="btnGalleryClose">Back to counter duty</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer>Counter Cat · gravity department · the cat has no comment</footer>
+
+<script>
+"use strict";
+/* CORE-START */
+/* ============================================================
+   CORE — mechanics only, no DOM. This exact block is extracted
+   and eval'd by tools/bench.mjs, so the Node benchmark and the
+   browser run ONE simulator (never let two implementations
+   drift). ONE simulator also serves BOTH game modes — the rules
+   differ only in board data:
+     duck boards: nests, sealed border, goal = settle on nest.
+     cat boards:  no nests, GAPS in the border, goal = targets
+                  exit through a gap; forbidden pieces must not.
+   Cell types: ICE slides, ROCK blocks, NEST catches ducklings.
+   Piece types: 'D' goal piece (duckling / knock-off target)
+                'A' forbidden mover (acorn / the cat's own stuff
+                    — in cat boards it must never exit)
+                'N' neutral mover (junk; may exit, no effect)
+   Piece fields: {t, r, c, s(ettled), g(one)}.
+   ============================================================ */
+const ICE = 0, ROCK = 1, NEST = 2;
+const DIRS = {
+  up:    { dr: -1, dc: 0 },
+  down:  { dr: 1,  dc: 0 },
+  left:  { dr: 0,  dc: -1 },
+  right: { dr: 0,  dc: 1 },
+};
+
+/* deterministic PRNG — same seed, same board, forever */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffled(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* is the border open where a piece at (r,c) would exit moving in dir?
+   gaps = {top,bottom,left,right}: per-lane 0/1 arrays, or null = sealed */
+function gapOpen(gaps, dir, r, c) {
+  if (!gaps) return false;
+  if (dir.dr === -1) return !!gaps.top[c];
+  if (dir.dr === 1)  return !!gaps.bottom[c];
+  if (dir.dc === -1) return !!gaps.left[r];
+  return !!gaps.right[r];
+}
+
+/* One swipe: every unsettled, still-on-board piece glides in `dir`
+   until it hits the border, a rock, or another piece's current
+   square. Pieces are processed nearest-wall-first, so a piece can
+   rest against a piece that stopped this same swipe.
+   - A goal piece ('D') that comes to REST on a nest settles and
+     from then on blocks like a rock (duck boards).
+   - A piece that reaches the border where a GAP is open EXITS the
+     board (g = true): targets exiting is progress; a forbidden
+     piece ('A') exiting sets forbiddenFell (an illegal outcome —
+     the UI refuses the swipe, the solver prunes the branch).
+   Pure function: returns fresh piece objects, never mutates.    */
+function applySwipe(board, pieces, dir, lane) {
+  const n = board.n;
+  const grid = board.cells;
+  const gaps = board.gaps || null;
+  const pos = pieces.map(p => ({ t: p.t, r: p.r, c: p.c, s: p.s, g: p.g }));
+  const laneAxis = lane && (lane.axis === "row" || lane.axis === "col") ? lane.axis : null;
+  const laneIndex = laneAxis ? lane.index | 0 : -1;
+  const inLane = p => !laneAxis || (laneAxis === "row" ? p.r === laneIndex : p.c === laneIndex);
+  const occ = new Int8Array(n * n);
+  for (const p of pos) if (!p.g && (!laneAxis || inLane(p) || p.s)) occ[p.r * n + p.c] = 1;
+
+  /* nearest-to-farthest in the swipe direction */
+  const order = pos.map((_, i) => i).sort((a, b) =>
+    dir.dr ? (pos[b].r - pos[a].r) * dir.dr : (pos[b].c - pos[a].c) * dir.dc
+  );
+
+  let moved = false;
+  let forbiddenFell = false;
+  const settledNow = [], exitedNow = [], bonkedNow = [];
+  for (const i of order) {
+    const p = pos[i];
+    if (p.g) continue;                       /* already fell in a past swipe */
+    if (p.s) continue;                       /* settled ducklings are furniture */
+    if (!inLane(p)) continue;                /* expert bap: only the pawed lane moves */
+    occ[p.r * n + p.c] = 0;
+    let r = p.r, c = p.c, exited = false;
+    for (;;) {
+      const nr = r + dir.dr, nc = c + dir.dc;
+      if (nr < 0 || nr >= n || nc < 0 || nc >= n) {
+        if (gapOpen(gaps, dir, r, c)) {
+          /* forbidden pieces (yarn balls) are BIGGER than the gaps —
+             they bonk against the opening and stay on the counter;
+             everything else fits and goes over                      */
+          if (p.t === "A") bonkedNow.push(i);
+          else exited = true;
+        }
+        break;
+      }
+      const k = nr * n + nc;
+      if (grid[k] === ROCK) break;
+      if (occ[k]) break;
+      r = nr; c = nc;
+    }
+    if (exited) {
+      p.g = true;
+      p.r = r; p.c = c;                      /* last on-board cell (for animation) */
+      moved = true;
+      exitedNow.push(i);
+      continue;                              /* gone pieces don't occupy */
+    }
+    if (r !== p.r || c !== p.c) moved = true;
+    p.r = r; p.c = c;
+    occ[r * n + c] = 1;
+    if (p.t === "D" && grid[r * n + c] === NEST && !p.s) {
+      p.s = true;
+      settledNow.push(i);
+    }
+  }
+  /* forbiddenFell is retired (yarn physically can't exit) but kept in
+     the result shape — the UI's refusal branch stays as a dead-man's
+     backstop should a future piece type reintroduce illegal exits    */
+  return { moved, pieces: pos, settledNow, exitedNow, bonkedNow, forbiddenFell };
+}
+
+/* win = every goal piece resolved: settled on a nest (duck) or
+   fallen off the counter (cat) */
+function isWin(pieces) {
+  return pieces.every(p => p.t !== "D" || p.s || p.g);
+}
+
+/* canonical state key — same-type pieces are interchangeable, so
+   sorting the tokens collapses equivalent states in the BFS.
+   Gone pieces are simply absent from the key.                    */
+function encodeState(pieces) {
+  return pieces
+    .filter(p => !p.g)
+    .map(p => (p.t === "D" ? (p.s ? "S" : "D") : p.t) + p.r + "," + p.c)
+    .sort()
+    .join("|");
+}
+
+/* Forward-only breadth-first search over swipe sequences.
+   No reverse-move generation exists anywhere in this game — the
+   simulator above is the single source of truth, and the solver
+   just drives it. Swipes that drop a forbidden piece are pruned
+   (the game refuses them, so the solver never counts them).
+   Returns the optimal swipe count, or -1 if no solution within
+   maxDepth / maxStates.                                          */
+function solveBFS(board, pieces, maxDepth, maxStates) {
+  maxDepth = maxDepth || 16;
+  maxStates = maxStates || 200000;
+  if (isWin(pieces)) return { optimal: 0, states: 1 };
+  const dirList = [DIRS.up, DIRS.down, DIRS.left, DIRS.right];
+  let frontier = [pieces];
+  const seen = new Set([encodeState(pieces)]);
+  let depth = 0;
+  while (frontier.length && depth < maxDepth) {
+    depth++;
+    const next = [];
+    for (const st of frontier) {
+      for (let d = 0; d < 4; d++) {
+        const res = applySwipe(board, st, dirList[d]);
+        if (!res.moved) continue;
+        if (res.forbiddenFell) continue;     /* illegal swipe — pruned */
+        const key = encodeState(res.pieces);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (seen.size > maxStates) return { optimal: -1, states: seen.size, overflow: true };
+        if (isWin(res.pieces)) return { optimal: depth, states: seen.size };
+        next.push(res.pieces);
+      }
+    }
+    frontier = next;
+  }
+  return { optimal: -1, states: seen.size };
+}
+
+/* Expert solver: each move chooses one row/column and direction.
+   Horizontal moves affect only that row; vertical moves only that
+   column. This is the real harder game, not a cosmetic par bump. */
+function solveLaneBFS(board, pieces, maxDepth, maxStates) {
+  maxDepth = maxDepth || 28;
+  maxStates = maxStates || 450000;
+  if (isWin(pieces)) return { optimal: 0, states: 1 };
+  const moves = [];
+  for (let i = 0; i < board.n; i++) {
+    moves.push({ dir: DIRS.left, lane: { axis: "row", index: i } });
+    moves.push({ dir: DIRS.right, lane: { axis: "row", index: i } });
+    moves.push({ dir: DIRS.up, lane: { axis: "col", index: i } });
+    moves.push({ dir: DIRS.down, lane: { axis: "col", index: i } });
+  }
+  let frontier = [pieces];
+  const seen = new Set([encodeState(pieces)]);
+  let depth = 0;
+  while (frontier.length && depth < maxDepth) {
+    depth++;
+    const next = [];
+    for (const st of frontier) {
+      for (const mv of moves) {
+        const res = applySwipe(board, st, mv.dir, mv.lane);
+        if (!res.moved) continue;
+        if (res.forbiddenFell) continue;
+        const key = encodeState(res.pieces);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (seen.size > maxStates) return { optimal: -1, states: seen.size, overflow: true };
+        if (isWin(res.pieces)) return { optimal: depth, states: seen.size };
+        next.push(res.pieces);
+      }
+    }
+    frontier = next;
+  }
+  return { optimal: -1, states: seen.size };
+}
+
+/* Seeded random layout. One shuffled deck of cells is dealt in a
+   FIXED order and the gap lanes are drawn AFTER the deck — the
+   deal order is part of every board's identity; changing it would
+   change every board ever generated. Don't.
+   Duck boards (no cfg.mode or 'duck'):
+     deal rocks -> nests -> ducklings -> acorns; sealed border.
+   Cat boards (cfg.mode === 'cat'):
+     deal rocks -> targets(D) -> forbidden(A) -> neutrals(N);
+     then draw cfg.gaps distinct open lanes on the border
+     (cfg.gaps === 'all' opens every lane — used only by the
+     depth-measurement harness, not by real levels).             */
+function genLayout(seed, cfg) {
+  const rng = mulberry32(seed);
+  const n = cfg.n;
+  const cells = new Uint8Array(n * n);
+  const deck = shuffled([...Array(n * n).keys()], rng);
+  let ptr = 0;
+  const take = count => deck.slice(ptr, (ptr += count));
+  const pieces = [];
+  const at = i => ({ r: Math.floor(i / n), c: i % n });
+
+  if (cfg.mode === "cat") {
+    for (const i of take(cfg.rocks)) cells[i] = ROCK;
+    for (const i of take(cfg.targets))  pieces.push({ t: "D", ...at(i), s: false, g: false });
+    for (const i of take(cfg.forbidden)) pieces.push({ t: "A", ...at(i), s: false, g: false });
+    for (const i of take(cfg.neutrals || 0)) pieces.push({ t: "N", ...at(i), s: false, g: false });
+    const gaps = {
+      top: new Uint8Array(n), bottom: new Uint8Array(n),
+      left: new Uint8Array(n), right: new Uint8Array(n),
+    };
+    if (cfg.gaps === "all") {
+      gaps.top.fill(1); gaps.bottom.fill(1); gaps.left.fill(1); gaps.right.fill(1);
+    } else {
+      /* lanes 0..4n-1 = top, bottom, left, right in lane-index order */
+      const lanes = shuffled([...Array(4 * n).keys()], rng).slice(0, cfg.gaps);
+      for (const L of lanes) {
+        const side = Math.floor(L / n), k = L % n;
+        if (side === 0) gaps.top[k] = 1;
+        else if (side === 1) gaps.bottom[k] = 1;
+        else if (side === 2) gaps.left[k] = 1;
+        else gaps.right[k] = 1;
+      }
+    }
+    return { board: { n, cells, gaps }, pieces };
+  }
+
+  for (const i of take(cfg.rocks)) cells[i] = ROCK;
+  for (const i of take(cfg.ducks)) cells[i] = NEST;
+  for (const i of take(cfg.ducks)) pieces.push({ t: "D", ...at(i), s: false, g: false });
+  for (const i of take(cfg.acorns)) pieces.push({ t: "A", ...at(i), s: false, g: false });
+  return { board: { n, cells }, pieces };
+}
+
+const WADDLE_CORE = { ICE, ROCK, NEST, DIRS, mulberry32, shuffled, gapOpen, applySwipe, isWin, encodeState, solveBFS, solveLaneBFS, genLayout };
+/* CORE-END */
+
+/* ============================================================
+   LEVELS — seeds pre-verified by tools/bench.mjs (forward BFS).
+   par = solver-optimal swipe count. Regenerating a layout from
+   its seed is instant; no search runs in the browser for ladder
+   levels. (The daily counter DOES search in the browser — cached
+   per date, yields between attempts.)
+   ============================================================ */
+const LEVELS = /*LEVELS-JSON*/[{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":3665210643,"par":4},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":365970812,"par":4},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":1321307996,"par":5},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":257769729,"par":5},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":3095118760,"par":6},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":1831280078,"par":7},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":1750341971,"par":7},{"n":6,"ducks":2,"acorns":2,"rocks":5,"seed":827861612,"par":8},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":2320532158,"par":5},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":4123604746,"par":6},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":827861612,"par":7},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":3628159514,"par":8},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":1019097954,"par":10},{"n":7,"ducks":3,"acorns":3,"rocks":7,"seed":1831280078,"par":10},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":1019097954,"par":8},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":4123604746,"par":8},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":2401470265,"par":10},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":2474750139,"par":10},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":1398051799,"par":12},{"n":8,"ducks":4,"acorns":4,"rocks":9,"seed":1710649297,"par":14}];
+
+const CAT_LEVELS = /*CAT-LEVELS-JSON*/[{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":4128371639,"par":3},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":3266194728,"par":3},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":4122090545,"par":3},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":184758640,"par":3},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":688430021,"par":4},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":3688717103,"par":4},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":317625039,"par":4},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":102578766,"par":5},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":932455890,"par":5},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":343643712,"par":6},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":2221821833,"par":7},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":0,"rocks":5,"gaps":3,"seed":641190360,"par":8},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3714736288,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3374393687,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":317625039,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3051698461,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3525422635,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":1216832415,"par":5},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":1836558203,"par":6},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3749676457,"par":6},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":294697801,"par":6},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":641190360,"par":7},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3301239,"par":7},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":2548158600,"par":7},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":3327154090,"par":8},{"mode":"cat","n":7,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":4,"seed":1166821356,"par":10},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1166821356,"par":6},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1705432446,"par":6},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1332887190,"par":6},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":839327833,"par":6},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1216832415,"par":6},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":2699474073,"par":7},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1612304869,"par":7},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":4271379259,"par":7},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":2958570904,"par":7},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":3830825023,"par":8},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":343643712,"par":8},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":3618550700,"par":8},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":3409333852,"par":8},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":932455890,"par":9},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":1442826479,"par":10},{"mode":"cat","n":8,"targets":4,"forbidden":3,"neutrals":1,"rocks":9,"gaps":5,"seed":784329036,"par":12},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":3830825023,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1496215662,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":541912769,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":2772315266,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1701923310,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":3615041500,"par":9},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1388017123,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1854721120,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":245718002,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":3519273045,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":2807255435,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1037276361,"par":10},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":839327833,"par":11},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":3947945006,"par":11},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":1251772548,"par":11},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":2014540392,"par":11},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":2376973988,"par":12},{"mode":"cat","n":8,"targets":5,"forbidden":3,"neutrals":2,"rocks":10,"gaps":4,"seed":3086638618,"par":15}];
+const CAT_EXPERT_LEVELS = /*CAT-EXPERT-LEVELS-JSON*/[{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":3041671974,"par":5,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":1218358241,"par":5,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":3872728466,"par":5,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":1401205463,"par":6,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":147967229,"par":6,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":2323686334,"par":6,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":2232278851,"par":6,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":387285365,"par":7,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":774513130,"par":7,"expert":true},{"mode":"cat","n":6,"targets":2,"forbidden":2,"neutrals":1,"rocks":7,"gaps":1,"seed":535195506,"par":7,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":2654444465,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":2027750596,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":3429030043,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":2563020598,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":3576924824,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":683105903,"par":5,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":3668348691,"par":6,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":3041671206,"par":6,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":774513386,"par":6,"expert":true},{"mode":"cat","n":6,"targets":3,"forbidden":2,"neutrals":1,"rocks":7,"gaps":2,"seed":535194738,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":204452991,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":591680756,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":4020638095,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":21605769,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":1035510507,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":408833534,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":3063335855,"par":6,"expert":true},{"mode":"cat","n":7,"targets":3,"forbidden":3,"neutrals":1,"rocks":9,"gaps":2,"seed":1183419624,"par":6,"expert":true}];
+
+/* daily tiers rotate by date — one shared counter per day */
+const DAILY_TIERS = [
+  { mode: "cat", n: 6, targets: 2, forbidden: 2, neutrals: 1, rocks: 5, gaps: 3, minPar: 4, maxPar: 8 },
+  { mode: "cat", n: 7, targets: 3, forbidden: 2, neutrals: 1, rocks: 7, gaps: 4, minPar: 5, maxPar: 10 },
+  { mode: "cat", n: 8, targets: 4, forbidden: 3, neutrals: 1, rocks: 9, gaps: 5, minPar: 6, maxPar: 13 },
+];
+
+/* ============================================================
+   ITEMS — every piece has an identity. Targets are the human's
+   stuff (name, gag price, material -> crash sound + shards);
+   forbidden pieces are the cat's own treasures; neutrals are
+   junk. Identity is COSMETIC — assigned from a separate seeded
+   stream so the solved layouts stay exactly as baked.
+   ============================================================ */
+const SV = (inner) => '<svg class="objIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><defs><filter id="softObjShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.1" stdDeviation="0.75" flood-color="#1f160f" flood-opacity=".24"/></filter><linearGradient id="warmObject" x1="5" y1="3" x2="19" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#fff8e8"/><stop offset=".48" stop-color="#f2d6b3"/><stop offset="1" stop-color="#b56b42"/></linearGradient><linearGradient id="coolGlass" x1="6" y1="3" x2="18" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity=".88"/><stop offset=".55" stop-color="#b8e3f2" stop-opacity=".68"/><stop offset="1" stop-color="#5c9fbd" stop-opacity=".70"/></linearGradient><linearGradient id="yarnGrad" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#d9f0ff"/><stop offset=".5" stop-color="#6aa7e2"/><stop offset="1" stop-color="#2f6fba"/></linearGradient></defs><g filter="url(#softObjShadow)">' + inner + '</g></svg>';
+const ITEMS = {
+  mug:      { name: "the good mug",       price: 8,   mat: "ceramic", icon: SV('<path d="M6 6 h9 v10 a3 3 0 0 1 -3 3 h-3 a3 3 0 0 1 -3 -3 z" fill="url(#warmObject)" stroke="#7b4a31"/><path d="M15 8 h2 a2.5 2.5 0 0 1 0 5 h-2" stroke="#7b4a31"/><path d="M8 8 h5" stroke="#fff4dc" stroke-width="1.1" opacity=".8"/>') },
+  vase:     { name: "grandma's vase",     price: 120, mat: "ceramic", icon: SV('<path d="M10 3 h4 M11 3 c0 3 -3 4 -3 8 c0 4 2 8 4 8 c2 0 4 -4 4 -8 c0 -4 -3 -5 -3 -8" fill="url(#warmObject)" stroke="#74462d"/><path d="M9.5 13 h5" stroke="#fff0d5" opacity=".75"/><path d="M10 8 c2 1.4 3 1.4 5 0" stroke="#cc7b4e" opacity=".65"/>') },
+  phone:    { name: "the phone (again)",  price: 900, mat: "tech",    icon: SV('<rect x="7" y="3" width="10" height="18" rx="2.5" fill="#27313d" stroke="#111820"/><rect x="8.5" y="5.2" width="7" height="11.8" rx="1" fill="#8ec7e8" stroke="none"/><path d="M9.2 6.2 l5.8 0 M9.2 8.2 l4.2 0" stroke="#dff4ff" stroke-width=".8" opacity=".8"/><line x1="10.5" y1="18" x2="13.5" y2="18" stroke="#d5dce2"/>') },
+  glass:    { name: "a water glass",      price: 4,   mat: "glass",   icon: SV('<path d="M7 3 h10 l-1.5 17 a1.5 1.5 0 0 1 -1.5 1 h-4 a1.5 1.5 0 0 1 -1.5 -1 z" fill="url(#coolGlass)" stroke="#5b96af"/><path d="M8 9 h8" stroke="#ffffff" opacity=".9"/><path d="M9 5 l1.2 13" stroke="#fff" opacity=".55"/>') },
+  remote:   { name: "the remote",         price: 25,  mat: "tech",    icon: SV('<rect x="8" y="3" width="8" height="18" rx="2.5"/><circle cx="12" cy="7" r="0.6"/><circle cx="12" cy="11" r="0.6"/><circle cx="12" cy="15" r="0.6"/>') },
+  plant:    { name: "the succulent",      price: 15,  mat: "ceramic", icon: SV('<path d="M8 14 h8 l-1 7 h-6 z"/><path d="M12 14 v-4 M12 10 c-1 -3 -4 -3 -5 -1 M12 10 c1 -3 4 -3 5 -1 M12 12 c-2 -1 -3 1 -2 2 M12 12 c2 -1 3 1 2 2"/>') },
+  snowglobe:{ name: "the snow globe",     price: 30,  mat: "glass",   icon: SV('<circle cx="12" cy="10" r="6.5"/><path d="M7 18 h10 l-1 3 h-8 z"/><path d="M12 12 l0 -4 M10 12 h4"/>') },
+  keys:     { name: "the car keys",       price: 95,  mat: "metal",   icon: SV('<circle cx="8" cy="8" r="4"/><path d="M11 11 l8 8 M16 16 l2 -2 M18 18 l2 -2"/>') },
+  book:     { name: "a library book",     price: 12,  mat: "paper",   icon: SV('<path d="M5 4 h11 a2 2 0 0 1 2 2 v14 h-11 a2 2 0 0 1 -2 -2 z"/><path d="M8 4 v14"/>') },
+  cube:     { name: "the puzzle cube",    price: 17,  mat: "tech",    icon: SV('<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M5 12 h14 M12 5 v14"/>') },
+  saltshkr: { name: "the salt shaker",    price: 6,   mat: "glass",   icon: SV('<path d="M9 8 l6 0 l1.5 12 a1.5 1.5 0 0 1 -1.5 1 h-6 a1.5 1.5 0 0 1 -1.5 -1 z"/><path d="M9.5 8 a2.5 3 0 0 1 5 0"/><circle cx="11" cy="6.4" r="0.4"/><circle cx="13" cy="6.4" r="0.4"/>') },
+  frame:    { name: "a framed photo",     price: 22,  mat: "glass",   icon: SV('<rect x="5" y="4" width="14" height="16" rx="1.5" fill="#81553a" stroke="#5a3725"/><rect x="7.5" y="6.5" width="9" height="11" rx=".8" fill="url(#coolGlass)" stroke="#fff2d6" stroke-width="1"/><path d="M8 15 l3 -3 l2 2 l3 -4" stroke="#447a95"/><circle cx="10.2" cy="9.5" r="1.1" fill="#f2c76d" stroke="none"/>') },
+  laptop:   { name: "the zoom-call laptop", price: 1200, mat: "tech", icon: SV('<rect x="6" y="5" width="12" height="9" rx="1"/><path d="M4 17 h16 l-2 -3 h-12 z"/>') },
+  keyboard: { name: "the keyboard",       price: 60,  mat: "tech",    icon: SV('<rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M6 11 h1 M9 11 h1 M12 11 h1 M15 11 h1 M18 11 h0.5 M7 14 h10"/>') },
+  catmug:   { name: "the World's Best Cat Mom mug", price: 9, mat: "ceramic", icon: SV('<path d="M6 6 h9 v10 a3 3 0 0 1 -3 3 h-3 a3 3 0 0 1 -3 -3 z" fill="url(#warmObject)" stroke="#7b4a31"/><path d="M15 8 h2 a2.5 2.5 0 0 1 0 5 h-2" stroke="#7b4a31"/><path d="M9 10 c0.6 -1 1.8 -1 1.8 0.2 c0 1 -1.8 2 -1.8 2 c0 0 -1.8 -1 -1.8 -2 c0 -1.2 1.2 -1.2 1.8 -0.2 z" transform="translate(1.5,0)" fill="#d95f5f" stroke="#9a3d3d"/>') },
+  wine:     { name: "the emotional-support wine glass", price: 11, mat: "glass", icon: SV('<path d="M8 3 h8 c0 5 -1.5 8 -4 8 c-2.5 0 -4 -3 -4 -8 z"/><line x1="12" y1="11" x2="12" y2="19"/><path d="M8 21 h8"/>') },
+  candle:   { name: "the scented candle (Autumn Whisper)", price: 24, mat: "glass", icon: SV('<rect x="7" y="9" width="10" height="11" rx="1.5"/><path d="M12 7 c-1.6 -1.8 0 -3.6 0 -3.6 c0 0 1.6 1.8 0 3.6 z"/>') },
+  cactus:   { name: "a tiny cactus named Gerald", price: 7, mat: "ceramic", icon: SV('<path d="M9 14 h6 l-0.8 6 h-4.4 z"/><path d="M12 14 v-8 M12 9 c-2.5 0 -3 -1 -3 -3 M12 11 c2.5 0 3 -1 3 -3"/>') },
+  jigsaw:   { name: "the 1000-piece jigsaw (3 missing)", price: 19, mat: "paper", icon: SV('<path d="M5 8 h5 a2 2 0 1 1 4 0 h5 v5 a2 2 0 1 0 0 4 v3 h-14 z"/>') },
+  /* the cat's own treasures — never fall */
+  bowl:     { name: "MY food bowl",       price: 0, mat: "none", icon: SV('<path d="M4 12 h16 a8 8 0 0 1 -16 0 z"/><circle cx="10" cy="10" r="0.7"/><circle cx="14" cy="10" r="0.7"/>') },
+  yarn:     { name: "MY yarn",            price: 0, mat: "none", icon: SV('<circle cx="12" cy="11.5" r="9" fill="url(#yarnGrad)" stroke="#2f6fba"/><path d="M3.6 8.5 c5 -3.5 12 -3.5 16.8 0 M3 12.5 c6 3.5 12 3.5 18 0 M5.5 16.5 c4 2.5 9 2.5 13 0 M8.5 3.2 c-3.5 5 -3.5 12 0.5 16.5 M15.5 3.2 c3.5 5 3.5 12 -0.5 16.5 M5 5.5 c4.5 4.5 9.5 7 14.5 8.5" stroke="#e9f6ff" stroke-width="1.35" opacity=".88"/><path d="M19.5 17 c2.5 1.5 3.5 3 3 5.5" stroke="#2f6fba" stroke-dasharray="0"/>') },
+  mouse:    { name: "MY catnip mouse",    price: 0, mat: "none", icon: SV('<ellipse cx="11" cy="13" rx="6" ry="4.5"/><circle cx="16" cy="10" r="1.6"/><path d="M17 13 c3 1 4 3 3 5"/>') },
+  box:      { name: "MY cardboard box",   price: 0, mat: "none", icon: SV('<path d="M4 9 l8 -4 l8 4 l-8 4 z"/><path d="M4 9 v7 l8 4 v-7 M20 9 v7 l-8 4"/>') },
+  dotmachine:{ name: "MY red dot machine", price: 0, mat: "none", icon: SV('<rect x="8" y="8" width="8" height="13" rx="3"/><circle cx="12" cy="5" r="1.6"/><path d="M12 6.6 v1.4"/>') },
+  fish:     { name: "MY fish friend",     price: 0, mat: "none", icon: SV('<circle cx="12" cy="12" r="8"/><path d="M8 12 c1.5 -2 4 -2 5.5 0 c-1.5 2 -4 2 -5.5 0 z M13.5 12 l2.5 -1.5 v3 z"/><path d="M6 8 c1 -1.5 3 -2.5 6 -2.5"/>') },
+  /* junk — may fall, nobody cares */
+  coaster:  { name: "a coaster",          price: 1, mat: "paper", icon: SV('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="4"/>') },
+  cap:      { name: "a bottle cap",       price: 0, mat: "metal", icon: SV('<circle cx="12" cy="12" r="5.5"/><path d="M12 6.5 l1 2 M17 10 l-2 1 M16 16 l-2 -1 M8 16 l2 -1 M7 10 l2 1"/>') },
+};
+const TARGET_POOL = ["mug", "vase", "phone", "glass", "remote", "plant", "snowglobe", "keys", "book", "cube", "saltshkr", "frame", "laptop", "keyboard", "catmug", "wine", "candle", "cactus", "jigsaw"];
+const KEEP_POOL = ["bowl", "yarn", "mouse", "box", "dotmachine", "fish"];
+const NEUTRAL_POOL = ["coaster", "cap"];
+
+/* cosmetic identity stream — separate from the layout stream */
+function assignItems(seed, pieces) {
+  const rng = mulberry32((seed ^ 0x17E6C0DE) >>> 0);
+  const pick = pool => pool[Math.floor(rng() * pool.length)];
+  for (const p of pieces) {
+    if (p.t === "D") p.item = pick(TARGET_POOL);
+    /* every treasure is a YARN BALL — the object itself explains the
+       rule (a cat guards its yarn; nobody asks why). The other treasure
+       identities in KEEP_POOL stay reserved for later levels, once the
+       rule is second nature.                                          */
+    else if (p.t === "A") { pick(KEEP_POOL); p.item = "yarn"; }
+    else p.item = pick(NEUTRAL_POOL);
+  }
+}
+
+/* ============================================================
+   CAREER STATS + ACHIEVEMENTS — the long game. Stats only ever
+   go up; achievements are meme-certified milestones.
+   ============================================================ */
+function statsData() {
+  const s = readJSON("kio_stats") || {};
+  const out = { wins: 0, items: 0, damages: 0, perfects: 0, dailies: 0, streakMax: 0, bestCombo: 0, dots: 0, ...s };
+  /* items is DERIVED — the gallery is the single source of truth.
+     (A stored items counter double-counted every win: celebrate
+     credited the gallery first, then the old "reconcile upward"
+     matched it, then the patch added the same items again.)       */
+  out.items = galleryTotal();
+  return out;
+}
+function bumpStats(patch) {
+  const s = statsData();
+  for (const k of Object.keys(patch)) {
+    s[k] = k === "streakMax" || k === "bestCombo" ? Math.max(s[k], patch[k]) : s[k] + patch[k];
+  }
+  store("kio_stats", JSON.stringify(s));
+  checkAchievements(s);
+  return s;
+}
+const ACHIEVEMENTS = [
+  { id: "gravity", name: "Gravity Department Intern", desc: "clear your first counter", test: s => s.wins >= 1 },
+  { id: "perfect", name: "A Perfect Crime", desc: "clear a counter at par", test: s => s.perfects >= 1 },
+  { id: "science", name: "Peer Reviewed by One Cat", desc: "knock 10 things off", test: s => s.items >= 10 },
+  { id: "gremlin", name: "Full Counter Cat", desc: "knock 50 things off", test: s => s.items >= 50 },
+  { id: "grand", name: "Floor Custodian", desc: "$1,000 in career damages", test: s => s.damages >= 1000 },
+  { id: "serial", name: "Repeat Offender", desc: "clear 10 counters", test: s => s.wins >= 10 },
+  { id: "double", name: "The Bap Heard Round the Kitchen", desc: "two crashes in one swat", test: s => s.bestCombo >= 2 },
+  { id: "daily1", name: "Report for Cat Duty", desc: "clear a Daily counter", test: s => s.dailies >= 1 },
+  { id: "streak7", name: "Seven Days, No Remorse", desc: "reach a 7-day streak", test: s => s.streakMax >= 7 },
+  { id: "dot", name: "Red Dot Department", desc: "catch the red dot 3 times", test: s => s.dots >= 3 },
+];
+function earnedSet() { return new Set(readJSON("kio_ach") || []); }
+function checkAchievements(s) {
+  const earned = earnedSet();
+  const fresh = [];
+  for (const a of ACHIEVEMENTS) {
+    if (earned.has(a.id) || !a.test(s)) continue;
+    earned.add(a.id);
+    fresh.push(a.name);
+  }
+  if (!fresh.length) return;
+  store("kio_ach", JSON.stringify([...earned]));
+  /* one toast, no timer chain — chains outlived level changes and
+     stomped the next level's own toasts                            */
+  setTimeout(() => showToast("🏅 " + fresh[0] + (fresh.length > 1 ? " (+" + (fresh.length - 1) + " more)" : "")), 400);
+}
+
+/* the human's resignation arc — quips soften as the levels go by */
+function handQuipPool() {
+  if (mode === "daily") return ["NO-", "the counter resets for YOU?", "every. single. day."];
+  if (levelIdx >= 20) return ["I'll buy a heavier vase", "floor inventory updated", "you win", "worth it."];
+  if (levelIdx >= 10) return ["...fine", "of course", "*sigh*", "I saw that"];
+  return ["NO-", "not AGAIN", "why.", "I just bought that", "please blink normally"];
+}
+
+/* ============================================================
+   AUDIO — tiny synth crashes, all generated, no assets.
+   The crash IS the reward (Jackson Galaxy was right). Materials
+   sound different; everything is layered noise + partials.
+   Context is created/resumed inside real user gestures only.
+   ============================================================ */
+let AC = null;
+let soundOn = true;
+function audioCtx() {
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return null;
+  if (!AC) { try { AC = new Ctor(); } catch (e) { return null; } }
+  if (AC.state === "suspended") { try { AC.resume(); } catch (e) {} }
+  return AC;
+}
+function noiseBurst(ctx, t0, dur, type, freq, q, gain) {
+  const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const flt = ctx.createBiquadFilter();
+  flt.type = type; flt.frequency.value = freq; flt.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(flt).connect(g).connect(ctx.destination);
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+function tone(ctx, t0, dur, freq, type, gain) {
+  const o = ctx.createOscillator();
+  o.type = type; o.frequency.value = freq;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function sfx(kind) {
+  if (!soundOn) return;
+  const ctx = audioCtx();
+  if (!ctx) return;
+  try {
+    const t = ctx.currentTime;
+    if (kind === "ceramic") {
+      noiseBurst(ctx, t, 0.09, "bandpass", 1900, 3, 0.5);
+      noiseBurst(ctx, t + 0.07, 0.07, "bandpass", 1400, 3, 0.3);
+      noiseBurst(ctx, t + 0.15, 0.05, "bandpass", 2400, 4, 0.15);
+    } else if (kind === "glass") {
+      noiseBurst(ctx, t, 0.1, "highpass", 3800, 1, 0.35);
+      tone(ctx, t, 0.34, 2830, "sine", 0.10);
+      tone(ctx, t + 0.02, 0.3, 3960, "sine", 0.07);
+      tone(ctx, t + 0.04, 0.26, 5230, "sine", 0.05);
+    } else if (kind === "tech") {
+      noiseBurst(ctx, t, 0.04, "lowpass", 850, 1, 0.55);
+      noiseBurst(ctx, t + 0.1, 0.03, "lowpass", 640, 1, 0.3);
+    } else if (kind === "metal") {
+      tone(ctx, t, 0.4, 620, "triangle", 0.16);
+      tone(ctx, t + 0.01, 0.34, 941, "triangle", 0.1);
+      noiseBurst(ctx, t, 0.05, "highpass", 2400, 1, 0.2);
+    } else if (kind === "paper") {
+      noiseBurst(ctx, t, 0.1, "lowpass", 420, 1, 0.3);
+    } else if (kind === "whoosh") {
+      noiseBurst(ctx, t, 0.1, "bandpass", 700, 2, 0.12);
+    } else if (kind === "thud") {
+      noiseBurst(ctx, t, 0.06, "lowpass", 260, 1, 0.25);
+    } else if (kind === "whew") {
+      tone(ctx, t, 0.09, 660, "sine", 0.1);
+      tone(ctx, t + 0.1, 0.14, 880, "sine", 0.08);
+    } else if (kind === "settle") {
+      tone(ctx, t, 0.18, 740, "sine", 0.09);
+      tone(ctx, t + 0.06, 0.22, 988, "sine", 0.07);
+    } else if (kind === "win") {
+      tone(ctx, t, 0.1, 523, "triangle", 0.12);
+      tone(ctx, t + 0.11, 0.1, 659, "triangle", 0.12);
+      tone(ctx, t + 0.22, 0.2, 784, "triangle", 0.12);
+    }
+  } catch (e) { /* audio is garnish — never let it break a swat */ }
+}
+function crashSound(item) {
+  const mat = (ITEMS[item] && ITEMS[item].mat) || "ceramic";
+  sfx(mat === "none" ? "ceramic" : mat);
+}
+
+/* ============================================================
+   UI — sections: 1) storage  2) state  3) daily  4) save slots
+   5) render  6) the swat pipeline  7) win + receipt  8) gallery
+   9) input  10) boot
+   ============================================================ */
+
+/* ---------- 1. safe storage (localStorage can throw) ---------- */
+function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function unstore(k)  { try { localStorage.removeItem(k); } catch (e) {} }
+function readStr(k)  { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function readInt(k, dflt, min) {
+  const v = parseInt(readStr(k) ?? "", 10);
+  return Number.isFinite(v) && v >= min ? v : dflt;
+}
+function readJSON(k) {
+  try { return JSON.parse(readStr(k) || "null"); } catch (e) { return null; }
+}
+
+/* A completion handoff is deliberately separate from Counter Cat's own
+   progression keys. It is a small, same-origin outbox for the Living Shelf;
+   failures never affect the completed case, the win card, or the old save. */
+const COUNTER_CAT_SHELF_RELAY_KEY = "teammultiply:counter-cat:relay:v1";
+function queueCounterCatShelfRelay(legacyKey, moveCount) {
+  const raw = readStr(COUNTER_CAT_SHELF_RELAY_KEY);
+  let envelope;
+  if (raw === null) {
+    envelope = { schemaVersion: 1, events: [] };
+  } else {
+    try { envelope = JSON.parse(raw); } catch (e) { return false; }
+    if (!envelope || typeof envelope !== "object" || Array.isArray(envelope) ||
+        envelope.schemaVersion !== 1 || !Array.isArray(envelope.events)) return false;
+  }
+
+  const eventId = "legacy:counter-cat:v1:" + legacyKey;
+  if (envelope.events.some(event => event && typeof event === "object" && event.eventId === eventId)) return true;
+  const completedAt = new Date().toISOString();
+  try {
+    localStorage.setItem(COUNTER_CAT_SHELF_RELAY_KEY, JSON.stringify({
+      schemaVersion: 1,
+      events: [...envelope.events, {
+        schemaVersion: 1,
+        eventId,
+        legacyKey,
+        completedAt,
+        moves: Number.isSafeInteger(moveCount) && moveCount >= 0 ? moveCount : 0
+      }]
+    }));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* one-time migration from the prototype's keys */
+(function migrate() {
+  if (readStr("kio_migrated")) return;
+  const mv = (from, to) => { const v = readStr(from); if (v !== null && readStr(to) === null) store(to, v); };
+  mv("whc_level", "kio_level:cat");
+  mv("wh_level", "kio_level:duck");
+  for (let i = 0; i < 40; i++) {
+    mv("whc_best:" + i, "kio_best:cat:" + i);
+    mv("wh_best:" + i, "kio_best:duck:" + i);
+  }
+  store("kio_migrated", "1");
+})();
+
+/* ---------- 2. state ---------- */
+const $ = id => document.getElementById(id);
+const boardEl = $("board");
+const piecesEl = $("pieces");
+const stageEl = $("stage");
+const floorEl = $("floor");
+const catEl = $("catSvg");
+
+/* modes: cat | daily. (The duck skin was retired 7/9 — Steve: "ducks?
+   that's left over from waddle". CORE still understands duck boards
+   and the 20 duck levels stay embedded as solver regression fixtures,
+   but there is no player-facing way to reach them.)                  */
+let mode = "cat";                                  /* always boot on the ladder */
+
+let levelIdx = 0;
+let dailySpecCache = null;   /* {spec, par} for today, once generated */
+let board = null;
+let pieces = [];
+let initialPieces = [];
+let undoStack = [];
+let moves = 0;
+let animating = false;
+let celebrating = false;
+let overlayTimer = null;
+let animTimer = null;
+let genEpoch = 0;            /* bumped on every startLevel; stale daily gens + swipe timers bail */
+let catTimer1 = null, catTimer2 = null;
+let fallSeq = 0;             /* floor-pile ordering: stamps pieces in the order they fell */
+let dailyReturnMode = "cat"; /* which mode the Daily chip should return to */
+let winPending = false;      /* a winning swat has committed but celebrate() hasn't run yet —
+                                nav must not be able to abandon an already-won board          */
+
+/* any modal overlay showing? swipes/undo/reset/keys must not reach the board */
+function modalOpen() {
+  return $("briefOverlay").classList.contains("show") || $("galleryOverlay").classList.contains("show") || $("winOverlay").classList.contains("show");
+}
+
+let fastMode = readStr("kio_fast") === "1";
+soundOn = readStr("kio_mute") !== "1";
+const storedExpertPreference = readStr("kio_expert");
+const hasCounterCatHistory = readStr("kio_level:cat") !== null ||
+  Object.keys(readJSON("kio_done") || {}).some(key => key.startsWith("cat:"));
+/* New players learn the whole-counter Tilt first. Existing players keep the
+   Expert-default behavior they already learned unless they chose otherwise. */
+let expertMode = storedExpertPreference === null ? hasCounterCatHistory : storedExpertPreference !== "0";
+if (storedExpertPreference === null && !hasCounterCatHistory) store("kio_expert", "0");
+const shouldShowStarterBriefing = storedExpertPreference === null && !hasCounterCatHistory && !readStr("kio_seen_briefing");
+
+function T() {               /* timing table — fast mode skips the drama */
+  return fastMode
+    ? { windup: 0,   perCell: 26, base: 30, teeter: 90,  fall: 160, smug: 300 }
+    : { windup: 300, perCell: 38, base: 45, teeter: 240, fall: 260, smug: 900 };
+}
+
+const CRASH_TOASTS = [
+  "gravity: confirmed",
+  "the mug has entered floor custody",
+  "hypothesis: falls. result: falls",
+  "human reaction: reinforcing",
+  "methodology: paw",
+  "suspect is extremely soft",
+  "further research required",
+];
+const HAND_QUIPS = ["NO-", "not AGAIN", "why.", "I just bought that", "please blink normally"];
+const SHARE_FOOTERS = [
+  "The cat has no comment.",
+  "Gravity was tested. Results were conclusive.",
+  "Human reaction: reinforcing.",
+  "The yarn was protected at all costs.",
+  "The defendant slow-blinked.",
+  "Peer reviewed by one cat.",
+];
+let lastShareText = "";
+
+function isCatRules() { return true; }             /* duck skin retired; kept for readability */
+function levels() { return expertMode ? CAT_EXPERT_LEVELS : CAT_LEVELS; }
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+         "-" + String(d.getDate()).padStart(2, "0");
+}
+/* the daily's date is PINNED when the board is generated — if a session
+   crosses midnight, wins still credit the day actually being played   */
+function dailyDate() { return dailySpecCache ? dailySpecCache.date : todayStr(); }
+/* ladder keys carry the board's SEED — when levels get re-baked (rule
+   changes, new tiers), old bests/done/saves orphan harmlessly instead
+   of mislabeling different boards                                    */
+function ladderSeed() { const lv = levels()[levelIdx]; return lv ? lv.seed : 0; }
+function rulesKey() { return expertMode ? "lane" : "tilt"; }
+function boardKey() { return (mode === "daily" ? "daily:" + dailyDate() : mode + ":" + levelIdx + ":" + ladderSeed()) + ":" + rulesKey(); }
+function bestKey() { return "kio_best:" + mode + ":" + levelIdx + ":" + ladderSeed() + ":" + rulesKey(); }
+function doneMap() { return readJSON("kio_done") || {}; }
+function markDone(key) { const m = doneMap(); m[key] = 1; store("kio_done", JSON.stringify(m)); }
+
+function currentSpec() {
+  return mode === "daily" ? dailySpecCache.spec : levels()[levelIdx];
+}
+function currentPar() {
+  const base = mode === "daily" ? dailySpecCache.par : levels()[levelIdx].par;
+  return expertMode && !(currentSpec() && currentSpec().expert) ? Math.max(base + 3, Math.ceil(base * 1.85)) : base;
+}
+
+/* ---------- 3. daily counter (generated in-browser, cached) ---------- */
+const yield0 = () => new Promise(r => setTimeout(r, 0));
+async function getDaily(dateStr) {
+  const cacheKey = "kio_puz2:daily:" + dateStr;
+  const cached = readJSON(cacheKey);
+  if (cached && cached.spec && cached.par > 0) return { ...cached, date: dateStr };
+  const dayN = parseInt(dateStr.replaceAll("-", ""), 10);
+  const tier = DAILY_TIERS[dayN % DAILY_TIERS.length];
+  const base = (dayN ^ 0x5EEDCA7) >>> 0;
+  let fallback = null;
+  for (let k = 0; k < 80; k++) {
+    const seed = (base + Math.imul(k, 0x9E3779B1)) >>> 0;
+    const spec = { mode: "cat", n: tier.n, targets: tier.targets, forbidden: tier.forbidden,
+                   neutrals: tier.neutrals, rocks: tier.rocks, gaps: tier.gaps, seed };
+    const { board: b, pieces: ps } = genLayout(seed, spec);
+    const r = solveBFS(b, ps, 16, 300000);
+    if (r.optimal >= tier.minPar && r.optimal <= tier.maxPar) {
+      const out = { date: dateStr, spec, par: r.optimal };
+      store(cacheKey, JSON.stringify(out));
+      return out;
+    }
+    if (r.optimal > 0 && !fallback) fallback = { date: dateStr, spec, par: r.optimal };
+    await yield0();                    /* keep the UI alive between attempts */
+  }
+  const out = fallback;                /* extremely unlikely to be needed */
+  if (out) store(cacheKey, JSON.stringify(out));
+  return out;
+}
+
+/* ---------- 4. per-board save slots ---------- */
+function specSig(spec) {
+  return spec.seed + "/" + spec.n + "/" + (spec.mode || "duck") + "/" + (spec.gaps || 0);
+}
+function saveBoard() {
+  if (celebrating || !board) return;
+  store("kio_board:" + boardKey(), JSON.stringify({ sig: specSig(currentSpec()), pieces, moves }));
+}
+function loadSavedBoard(spec) {
+  const s = readJSON("kio_board:" + boardKey());
+  if (s && s.sig === specSig(spec) && Array.isArray(s.pieces) && Number.isFinite(s.moves) && s.moves >= 0) {
+    return s;
+  }
+  return null;
+}
+
+/* ---------- 5. render ---------- */
+function showFetching() {
+  boardEl.innerHTML = '<div class="fetching"><div class="paw">🐾</div><div>staff is resetting today’s counter…</div></div>';
+  piecesEl.innerHTML = "";
+  for (const el of stageEl.querySelectorAll(".gap-notch")) el.remove();
+}
+
+function buildBoard() {
+  const n = board.n;
+  boardEl.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${n}, 1fr)`;
+  boardEl.innerHTML = "";
+  for (let i = 0; i < n * n; i++) {
+    const div = document.createElement("div");
+    div.className = "cell" + (board.cells[i] === ROCK ? " rock" : board.cells[i] === NEST ? " nest" : "");
+    boardEl.appendChild(div);
+  }
+
+  /* edge gaps (cat boards): notches drawn over the border */
+  for (const el of stageEl.querySelectorAll(".gap-notch")) el.remove();
+  if (board.gaps) {
+    const cell = 100 / n;
+    const notch = (styles, arrow) => {
+      const d = document.createElement("div");
+      d.className = "gap-notch";
+      Object.assign(d.style, styles);
+      d.textContent = arrow;
+      d.style.fontSize = "calc(var(--bw) / " + n + " * 0.3)";
+      stageEl.appendChild(d);
+    };
+    for (let k = 0; k < n; k++) {
+      /* gaps are narrower than a cell: targets squeeze through, but a
+         full-cell yarn ball obviously cannot */
+      const lanePos = `calc(${k * cell}% + ${cell * 0.11}%)`;
+      const laneSize = `calc(${cell * 0.78}%)`;
+      if (board.gaps.top[k])    notch({ left: lanePos, width: laneSize, top: "-5px", height: "12px" }, "▲");
+      if (board.gaps.bottom[k]) notch({ left: lanePos, width: laneSize, bottom: "-5px", height: "12px" }, "▼");
+      if (board.gaps.left[k])   notch({ top: lanePos, height: laneSize, left: "-5px", width: "12px" }, "◀");
+      if (board.gaps.right[k])  notch({ top: lanePos, height: laneSize, right: "-5px", width: "12px" }, "▶");
+    }
+  }
+
+  /* pieces are rebuilt from scratch each level */
+  piecesEl.innerHTML = "";
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i];
+    const el = document.createElement("div");
+    el.className = "piece " + pieceClass(p.t);
+    el.style.width = el.style.height = (100 / n) + "%";
+    const icon = p.item && ITEMS[p.item] ? ITEMS[p.item].icon : "";
+    const mat = itemMat(p);
+    el.classList.add("mat-" + mat);
+    if (p.item) el.classList.add("item-" + p.item);
+    /* the cat's own pieces wear a ♥ — the "why won't it fall" answer, on the piece itself */
+    const badge = (isCatRules() && p.t === "A")
+      ? '<span class="mine"><svg viewBox="0 0 24 24"><path d="M12 21 C 5.5 15.5 3 11.5 3 8.2 a 4.7 4.7 0 0 1 9 -1.8 a 4.7 4.7 0 0 1 9 1.8 c 0 3.3 -2.5 7.3 -9 12.8 z" fill="#fff"/></svg></span>'
+      : "";
+    el.innerHTML = '<div class="body">' + icon + badge + "</div>";
+    if (p.item && ITEMS[p.item]) el.title = ITEMS[p.item].name;
+    piecesEl.appendChild(el);
+  }
+  placePieces(true);
+  renderFloor();
+}
+
+function pieceClass(t) {
+  if (isCatRules()) return t === "D" ? "target" : t === "A" ? "keep" : "neutral";
+  return t === "D" ? "duck" : "acorn";
+}
+
+/* move piece divs to their state positions; instant = no glide */
+function placePieces(instant, durations) {
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i];
+    const el = piecesEl.children[i];
+    if (!el) continue;
+    el.style.transitionDuration = instant ? "0s" : ((durations && durations[i]) || 120) + "ms";
+    el.style.setProperty("--slide-ms", Math.max(180, ((durations && durations[i]) || 120) + 80) + "ms");
+    el.style.transform = `translate(${p.c * 100}%, ${p.r * 100}%)`;
+    el.classList.toggle("settled", !!p.s);
+    el.classList.toggle("sliding", !instant && !!durations && durations[i] > 0);
+    if (instant) {
+      el.classList.toggle("hidden", !!p.g);
+      el.classList.remove("falling", "teeter", "sliding");
+      el.style.opacity = "";
+    }
+  }
+}
+
+function itemMat(p) {
+  return ((p && p.item && ITEMS[p.item] && ITEMS[p.item].mat) || "none").replace(/[^a-z0-9_-]/gi, "");
+}
+
+function movingCenter(p, dir) {
+  if (!board) return { x: 50, y: 50 };
+  const n = board.n;
+  const cell = 100 / n;
+  return {
+    x: (p.c + 0.5 + (dir ? dir.dc * 0.35 : 0)) * cell,
+    y: (p.r + 0.5 + (dir ? dir.dr * 0.35 : 0)) * cell,
+  };
+}
+
+function renderFloor() {
+  floorEl.classList.toggle("hiddenrow", !isCatRules());
+  if (!isCatRules()) return;
+  const fallenPieces = pieces.filter(p => p.g && p.t === "D")
+    .sort((a, b) => (a.fo || 0) - (b.fo || 0));   /* pile reads in the order things fell */
+  const total = pieces.filter(p => p.t === "D").length;
+  for (const el of floorEl.querySelectorAll(".debris, #floorLabel")) el.remove();
+  const label = document.createElement("span");
+  label.id = "floorLabel";
+  label.textContent = "the floor (" + fallenPieces.length + "/" + total + "):";
+  floorEl.insertBefore(label, floorEl.firstChild);
+  let after = label;
+  for (const p of fallenPieces) {
+    const d = document.createElement("span");
+    d.className = "debris";
+    d.title = brokenName(p.item);
+    d.innerHTML = (ITEMS[p.item] || ITEMS.mug).icon;
+    const mat = itemMat(p);
+    d.classList.add("mat-" + mat);
+    after.insertAdjacentElement("afterend", d);
+    after = d;
+  }
+}
+
+function brokenName(itemId) {
+  const it = ITEMS[itemId] || ITEMS.mug;
+  const prefix = {
+    ceramic: "chipped",
+    glass: "sparkly remains of",
+    tech: "slightly doomed",
+    metal: "loudly relocated",
+    paper: "dramatically scattered",
+  }[it.mat] || "relocated";
+  return prefix + " " + it.name;
+}
+
+function galleryData() {
+  const g = readJSON("kio_gallery") || {};
+  /* drop any keys that aren't real items (an early bug credited
+     crashes under "undefined" before identities survived swipes) */
+  let dirty = false;
+  for (const k of Object.keys(g)) {
+    if (!ITEMS[k]) { delete g[k]; dirty = true; }
+  }
+  if (dirty) store("kio_gallery", JSON.stringify(g));
+  return g;
+}
+function galleryTotal() {
+  const g = galleryData();
+  return Object.values(g).reduce((a, b) => a + b, 0);
+}
+function creditGallery(item) {
+  const g = galleryData();
+  g[item] = (g[item] || 0) + 1;
+  store("kio_gallery", JSON.stringify(g));
+  $("galleryCount").textContent = galleryTotal();
+}
+
+function renderHud() {
+  $("btnDaily").textContent = mode === "daily" ? "🔙 Levels" : "📅 Cat Duty";
+  $("chipLevel").textContent = mode === "daily" ? "📅 " + (dailySpecCache ? dailySpecCache.date : todayStr()) : "Level " + (levelIdx + 1) + " / " + levels().length;
+  $("chipSize").textContent = board ? board.n + "×" + board.n : "–";
+  $("chipMoves").textContent = moves;
+  $("chipPar").textContent = board ? currentPar() : "–";
+  const best = readInt(bestKey(), 0, 1);
+  $("chipBest").textContent = mode === "daily"
+    ? "🔥 " + readInt("kio_daily_streak", 0, 0)
+    : (best ? "★ best " + best : "☆ unsolved");
+  $("galleryCount").textContent = galleryTotal();
+  $("btnPrev").disabled = mode === "daily" || levelIdx === 0;
+  $("btnNext").disabled = mode === "daily" || levelIdx >= levels().length - 1;
+  $("btnSound").textContent = soundOn ? "🔊" : "🔇";
+  $("btnFast").classList.toggle("on", fastMode);
+  $("btnExpert").classList.toggle("on", expertMode);
+  $("btnExpert").textContent = expertMode ? "🎯 Expert" : "🌊 Tilt";
+  $("btnExpert").title = expertMode
+    ? "Expert: only the chosen row or column moves. Switch to Tilt for whole-counter movement."
+    : "Tilt: every movable object moves together. Switch to Expert when you want a harder read.";
+  renderMission();
+  renderStarterGuide();
+}
+
+function isStarterCase() {
+  return mode === "cat" && !expertMode && levelIdx === 0 && !doneMap()[boardKey()];
+}
+
+function renderStarterGuide() {
+  const guide = $("starterGuide");
+  const active = !!board && isStarterCase();
+  guide.hidden = !active;
+  stageEl.classList.toggle("starter-mode", active);
+  if (!active) return;
+  const total = pieces.filter(p => p.t === "D").length;
+  const fallen = pieces.filter(p => p.t === "D" && p.g).length;
+  const status = fallen
+    ? (fallen === total
+      ? "Everything is in floor custody."
+      : fallen + " item" + (fallen === 1 ? " is" : "s are") + " down. Find the next exit.")
+    : (moves
+      ? "Good swat. Test another route or use Undo."
+      : total + " orange item" + (total === 1 ? " needs" : "s need") + " an arrow exit.");
+  $("starterGuideStatus").textContent = status;
+}
+
+function renderMission() {
+  const panel = $("dailyPanel");
+  if (!panel) return;
+  const dailyDone = readStr("kio_daily_done") === todayStr();
+  const total = board ? pieces.filter(p => p.t === "D").length : 0;
+  const fallen = board ? pieces.filter(p => p.t === "D" && p.g).length : 0;
+  panel.classList.toggle("done", dailyDone || (total > 0 && fallen === total));
+  if (mode === "daily") {
+    $("missionTitle").textContent = dailyDone ? "Case file archived" : "Daily cat duty";
+    $("missionText").textContent = dailyDone
+      ? "Evidence logged. Streak safe. The cat is unavailable for comment."
+      : (expertMode ? "Expert duty: bap one lane at a time. " : "") + "Today's shared counter: " + fallen + "/" + total + " objects in floor custody.";
+  } else {
+    if (isStarterCase()) {
+      $("missionTitle").textContent = "Case 01 · clear the counter";
+      $("missionText").textContent = total
+        ? "Get orange evidence through arrow gaps · " + fallen + "/" + total + " relocated."
+        : "One good bap can change the whole room.";
+    } else {
+      $("missionTitle").textContent = "Counter inspection";
+      $("missionText").textContent = total
+        ? (expertMode ? "Expert case: choose a row or column · " : "Case file: ") + fallen + "/" + total + " relocated · blue yarn is protected evidence."
+        : "One good bap can change the whole room.";
+    }
+  }
+}
+
+/* bounce the ♥ pieces — used when a swat is refused and once at first contact */
+function pulseMine(indices) {
+  const idx = indices || pieces.map((p, i) => (p.t === "A" && !p.g ? i : -1)).filter(i => i >= 0);
+  for (const i of idx) {
+    const el = piecesEl.children[i];
+    if (!el) continue;
+    el.classList.remove("minepulse");
+    void el.offsetWidth;
+    el.classList.add("minepulse");
+  }
+}
+
+/* swat tilts stack on the counter's resting 7deg X lean (see #stage CSS) */
+const TILTS = {
+  up:    "perspective(1100px) rotateX(13deg)",
+  down:  "perspective(1100px) rotateX(1deg)",
+  left:  "perspective(1100px) rotateX(7deg) rotateY(6deg)",
+  right: "perspective(1100px) rotateX(7deg) rotateY(-6deg)",
+};
+const DIR_NAMES = { up: DIRS.up, down: DIRS.down, left: DIRS.left, right: DIRS.right };
+
+function catState(cls, lookDir) {
+  catEl.classList.remove("windup", "swat", "watch", "smug", "grab", "idle");
+  if (cls) catEl.classList.add(cls);
+  else catEl.classList.add("idle");
+  if (lookDir) {
+    const lx = lookDir.dc * 3.5;
+    const ly = lookDir.dr * 2.5 + 3;
+    catEl.style.setProperty("--lookx", lx + "px");
+    catEl.style.setProperty("--looky", ly + "px");
+  }
+}
+
+function catTrackPiece(p, dir) {
+  if (!p) return;
+  const center = movingCenter(p, dir);
+  const lx = Math.max(-5, Math.min(5, (center.x - 50) / 8));
+  const ly = Math.max(-2, Math.min(7, (center.y - 18) / 12));
+  catEl.style.setProperty("--lookx", lx + "px");
+  catEl.style.setProperty("--looky", ly + "px");
+}
+
+function laneFromPoint(x, y, dirName) {
+  if (!expertMode || !board || !stageEl) return null;
+  const rect = stageEl.getBoundingClientRect();
+  const n = board.n;
+  const clampedX = Math.max(0, Math.min(rect.width - 1, x - rect.left));
+  const clampedY = Math.max(0, Math.min(rect.height - 1, y - rect.top));
+  if (dirName === "left" || dirName === "right") {
+    return { axis: "row", index: Math.max(0, Math.min(n - 1, Math.floor(clampedY / rect.height * n))) };
+  }
+  return { axis: "col", index: Math.max(0, Math.min(n - 1, Math.floor(clampedX / rect.width * n))) };
+}
+
+function defaultLane(dirName) {
+  if (!expertMode || !board) return null;
+  const n = board.n;
+  return (dirName === "left" || dirName === "right")
+    ? { axis: "row", index: Math.floor(n / 2) }
+    : { axis: "col", index: Math.floor(n / 2) };
+}
+
+function showLaneFocus(lane, holdMs) {
+  const el = $("laneFocus");
+  if (!el || !board || !lane) { if (el) el.classList.remove("on"); return; }
+  const n = board.n;
+  const cell = 100 / n;
+  if (lane.axis === "row") {
+    el.style.left = "0%";
+    el.style.top = (lane.index * cell) + "%";
+    el.style.width = "100%";
+    el.style.height = cell + "%";
+  } else {
+    el.style.left = (lane.index * cell) + "%";
+    el.style.top = "0%";
+    el.style.width = cell + "%";
+    el.style.height = "100%";
+  }
+  el.classList.add("on");
+  clearTimeout(showLaneFocus.timer);
+  showLaneFocus.timer = setTimeout(() => el.classList.remove("on"), holdMs || 520);
+}
+
+async function startLevel() {
+  const epoch = ++genEpoch;
+  clearTimeout(overlayTimer);
+  clearTimeout(animTimer);
+  clearTimeout(catTimer1); clearTimeout(catTimer2);
+  $("winOverlay").classList.remove("show");
+  celebrating = false;
+  animating = false;
+  winPending = false;
+  if (dotState) redDotHide(false);       /* a live red dot doesn't survive a level change */
+  clearTimeout(birdTimer);
+  pawClear();
+  $("pawOverlay").classList.remove("act");
+  catState(null);
+
+  fallSeq = 0;
+  let spec;
+  if (mode === "daily") {
+    board = null;                            /* no board during the fetch: doSwipe/undo/reset all bail */
+    pieces = [];
+    dailySpecCache = null;
+    showFetching();
+    renderHud();
+    const daily = await getDaily(todayStr());
+    if (epoch !== genEpoch) return;          /* player navigated away mid-generation */
+    if (!daily) { showToast("Couldn't set today's counter — try Levels"); mode = dailyReturnMode; startLevel(); return; }
+    dailySpecCache = daily;
+    spec = daily.spec;
+  } else {
+    if (!levels().length) { showToast("No levels baked for this mode"); return; }
+    levelIdx = Math.min(levelIdx, levels().length - 1);
+    spec = levels()[levelIdx];
+  }
+
+  const gen = genLayout(spec.seed, spec);
+  board = gen.board;
+  pieces = gen.pieces;
+  if (isCatRules()) assignItems(spec.seed, pieces);
+  initialPieces = pieces.map(p => ({ ...p }));
+  undoStack = [];
+  moves = 0;
+
+  /* solved-before restore (daily revisits show the cleared counter) */
+  const done = doneMap()[boardKey()];
+  if (done && mode === "daily") {
+    for (const p of pieces) if (p.t === "D") p.g = true;
+    celebrating = false;
+  } else if (!done) {
+    const saved = loadSavedBoard(spec);
+    if (saved) {
+      pieces = saved.pieces;
+      moves = saved.moves;
+      fallSeq = Math.max(0, ...pieces.map(p => p.fo || 0));   /* keep fall-order monotonic */
+      if (isCatRules()) for (const p of pieces) if (p.t === "A") p.item = "yarn";   /* pre-yarn saves */
+    }
+  }
+
+  store("kio_mode", mode);
+  if (mode !== "daily") store("kio_level:" + mode, String(levelIdx));
+  stageEl.style.transform = "";                  /* level the counter */
+  buildBoard();
+  renderHud();
+
+  /* one-time teach: the ♥ rule is the least intuitive thing in the game */
+  if (isCatRules() && !readStr("kio_seen_mine") && pieces.some(p => p.t === "A" && !p.g)) {
+    store("kio_seen_mine", "1");
+    if (!isStarterCase()) {
+      setTimeout(() => {
+        if (epoch !== genEpoch) return;
+        pulseMine();
+        showToast("blue yarn ♥ is protected evidence. Everything else may enter floor custody.");
+      }, 700);
+    }
+  }
+}
+
+/* ---------- 6. the swat pipeline ----------
+   input -> (legality check) -> WIND-UP (eye contact, paw raised)
+   -> commit + glide -> teeter on the brink -> fall + crash
+   -> smug blink -> win check. Fast mode collapses the drama.   */
+function doSwipe(dirName, lane) {
+  cancelAmbient();                        /* input clears the red dot etc. */
+  if (animating || celebrating || !board || modalOpen()) return;
+  /* EPOCH GUARD: startLevel() bumps genEpoch. Every timer this swipe
+     schedules checks live() first, so navigating away mid-animation
+     (Next/Prev/mode/Daily) turns the whole in-flight chain into
+     no-ops instead of stray sounds/shards/credits on the new board. */
+  const epoch = genEpoch;
+  const live = () => epoch === genEpoch;
+  const t = T();
+  const dir = DIRS[dirName];
+  lane = expertMode ? (lane || defaultLane(dirName)) : null;
+  if (lane) showLaneFocus(lane, fastMode ? 300 : 620);
+  const res = applySwipe(board, pieces, dir, lane);
+  if (!res.moved && res.bonkedNow && res.bonkedNow.length) {
+    /* nothing slid because the yarn is already pressed against a gap
+       it can't fit through — squash it so the physics is visible     */
+    for (const i of res.bonkedNow) {
+      const el = piecesEl.children[i];
+      if (!el) continue;
+      el.classList.remove("bonk");
+      void el.offsetWidth;
+      el.classList.add("bonk");
+    }
+    sfx("thud");
+    const tips = readInt("kio_bonk_tips", 0, 0);
+    if (tips < 3) {
+      showToast("purrmission denied — protected yarn stays on the counter");
+      store("kio_bonk_tips", String(tips + 1));
+    }
+    return;
+  }
+  if (!res.moved) {
+    /* dead direction: everything is already packed that way. Must feel
+       different from a refusal — soft thud + a teaching toast early on */
+    stageEl.classList.remove("shake");
+    void stageEl.offsetWidth;
+    stageEl.classList.add("shake");
+    sfx("thud");
+    const tips = readInt("kio_nomove_tips", 0, 0);
+    if (tips < 3) {
+      const laneText = lane ? (lane.axis === "row" ? "row " : "column ") + (lane.index + 1) + " " : "";
+      showToast("case pawsed — " + laneText + "cannot slide " + dirName);
+      store("kio_nomove_tips", String(tips + 1));
+    }
+    return;
+  }
+  if (res.forbiddenFell) {
+    /* the cat refuses — with the TEASE-BACK beat from the meme: the
+       treasure slides to the brink, teeters, and gets snapped back.
+       Never punished, and now unmistakably not a dead input.        */
+    animating = true;
+    audioCtx();
+    const offenders = res.exitedNow.filter(i => res.pieces[i].t === "A");
+    catState("windup", dir);
+    clearTimeout(catTimer1); clearTimeout(catTimer2);
+    catTimer1 = setTimeout(() => {
+      if (!live()) return;
+      catState("grab");
+      sfx("whew");
+      if (offenders.length) pawSlam(res.pieces[offenders[0]].r, res.pieces[offenders[0]].c);
+      let maxBack = 0;
+      for (const i of offenders) {
+        const el = piecesEl.children[i];
+        if (!el) continue;
+        const brink = res.pieces[i];
+        const home = pieces[i];
+        const dist = Math.abs(brink.r - home.r) + Math.abs(brink.c - home.c);
+        const out = Math.max(90, t.base + dist * t.perCell);
+        el.style.transitionDuration = out + "ms";
+        el.style.transform = `translate(${brink.c * 100}%, ${brink.r * 100}%)`;
+        setTimeout(() => { if (live()) el.classList.add("teeter"); }, out);
+        setTimeout(() => {
+          if (!live()) return;
+          el.classList.remove("teeter");
+          el.style.transitionDuration = "150ms";
+          el.style.transform = `translate(${home.c * 100}%, ${home.r * 100}%)`;
+        }, out + 250);
+        maxBack = Math.max(maxBack, out + 250 + 170);
+      }
+      pulseMine(offenders);                     /* the ♥ flashes: THIS is why the swat won't happen */
+      const savedItem = pieces[offenders[0]];   /* res.pieces lack .item — read the live piece */
+      showToast("claw enforcement caught " + (savedItem && ITEMS[savedItem.item] ? ITEMS[savedItem.item].name : "that one") + " ♥. Find another way.");
+      catTimer2 = setTimeout(() => {
+        if (!live()) return;
+        catState(null);
+        placePieces(true);
+        animating = false;
+      }, maxBack + 60);
+    }, Math.min(t.windup, 150));
+    return;
+  }
+
+  animating = true;
+  audioCtx();                       /* unlock audio inside the user gesture */
+  catState("windup", dir);
+  clearTimeout(catTimer1); clearTimeout(catTimer2);   /* kill the previous swipe's pose timers */
+
+  catTimer1 = setTimeout(() => {
+    if (!live()) return;
+    /* commit the move */
+    undoStack.push(pieces.map(p => ({ ...p })));
+    moves++;
+    const before = pieces;
+    const durations = [];
+    let maxDur = 0;
+    for (let i = 0; i < before.length; i++) {
+      const dist = Math.abs(res.pieces[i].r - before[i].r) + Math.abs(res.pieces[i].c - before[i].c);
+      const d = dist ? t.base + dist * t.perCell : 0;
+      durations.push(d);
+      if (d > maxDur) maxDur = d;
+    }
+    const exited = res.exitedNow;
+    /* CORE's applySwipe copies only mechanics fields — reattach the
+       cosmetic identity by index or every crash becomes "the good mug";
+       exited pieces also get a fall-order stamp so the floor pile
+       reads left-to-right in the order things actually fell          */
+    res.pieces.forEach((p, i) => { p.item = before[i].item; p.fo = before[i].fo; });
+    for (const i of exited) res.pieces[i].fo = ++fallSeq;
+    pieces = res.pieces;
+    if (isWin(pieces)) winPending = true;   /* lock nav from this instant until celebrate() */
+    catState("swat", dir);
+    sfx("whoosh");
+    pawSweep(dirName, lane);                                /* the paw reaches in and pushes */
+    stageEl.style.transform = TILTS[dirName];               /* the counter tips under the swat */
+    setTimeout(() => { if (live()) stageEl.style.transform = ""; }, maxDur + 60);   /* back to the CSS base tilt */
+    placePieces(false, durations);
+    renderHud();
+    catTimer2 = setTimeout(() => { if (live()) catState("watch", dir); }, 120);
+
+    let extra = 0;
+    if (exited.length) {
+      const leadExit = exited
+        .map(i => ({ i, d: durations[i] || 0 }))
+        .sort((a, b) => b.d - a.d)[0];
+      if (leadExit) catTrackPiece(pieces[leadExit.i], dir);
+      extra = t.teeter + t.fall + 80;
+      for (const i of exited) {
+        const el = piecesEl.children[i];
+        const p = pieces[i];
+        setTimeout(() => { if (live() && el) el.classList.add("teeter"); }, durations[i]);
+        setTimeout(() => {
+          if (!live() || !el) return;
+          el.style.transitionDuration = t.fall + "ms";
+          el.style.setProperty("--fall-ms", t.fall + "ms");
+          el.style.setProperty("--fall-rot", (dir.dc ? dir.dc * 155 : dir.dr * 110) + "deg");
+          el.style.transform = `translate(${(p.c + dir.dc) * 100}%, ${(p.r + dir.dr) * 100}%) rotate(${dir.dc ? dir.dc * 60 : 60}deg) scale(0.6)`;
+          el.classList.add("falling");
+          impactBurst(p, dir);
+          if (p.t === "D") {
+            crashSound(p.item);          /* gallery credit happens at WIN — undo can't farm it */
+            handReact();
+          } else {
+            sfx("paper");
+          }
+        }, durations[i] + t.teeter);
+      }
+      setTimeout(() => {
+        if (!live()) return;
+        renderFloor();
+        const crashed = exited.filter(i => pieces[i] && pieces[i].t === "D").length;
+        if (isCatRules() && crashed) {
+          catState("smug");
+          clearTimeout(catTimer2);
+          catTimer2 = setTimeout(() => { if (live()) catState(null); }, t.smug);
+          if (crashed >= 2) {
+            comboBanner(crashed);
+            bumpStats({ bestCombo: crashed });
+          }
+          if (!celebrating) {
+            const first = exited.map(i => pieces[i]).find(p => p && p.t === "D");
+            showToast(first ? crashLine(first.item) : CRASH_TOASTS[(moves + exited.length) % CRASH_TOASTS.length]);
+          }
+        }
+      }, maxDur + t.teeter + t.fall);
+    } else if (res.settledNow.length) {
+      sfx("settle");
+    }
+
+    /* yarn arriving at a gap it can't fit through: squash on arrival */
+    if (res.bonkedNow && res.bonkedNow.length) {
+      let thudded = false;
+      for (const i of res.bonkedNow) {
+        const el = piecesEl.children[i];
+        if (!el) continue;
+        setTimeout(() => {
+          if (!live()) return;
+          el.classList.remove("bonk");
+          void el.offsetWidth;
+          el.classList.add("bonk");
+          if (!thudded) { thudded = true; sfx("thud"); }
+        }, durations[i] || 60);
+      }
+      const tips = readInt("kio_bonk_tips", 0, 0);
+      if (tips < 3) {
+        store("kio_bonk_tips", String(tips + 1));
+        setTimeout(() => { if (live()) showToast("bonk — the cat has veto power over yarn"); },
+          Math.max(...res.bonkedNow.map(i => durations[i] || 0)) + 120);
+      }
+    }
+
+    clearTimeout(animTimer);
+    animTimer = setTimeout(() => {
+      if (!live()) return;
+      animating = false;
+      winPending = false;
+      placePieces(true);
+      if (!exited.length) catState(null);
+      if (isWin(pieces)) celebrate();
+      else saveBoard();
+    }, maxDur + extra + 60);
+  }, t.windup);
+}
+
+/* material-tinted shards and dust where a piece left the counter */
+function impactBurst(p, dir) {
+  const n = board.n;
+  const cell = 100 / n;
+  const mat = (ITEMS[p.item] || {}).mat || "ceramic";
+  const item = ITEMS[p.item] || ITEMS.mug;
+  const colors = { ceramic: "#c96f45", glass: "#9fd0e8", tech: "#8f9fb3", metal: "#c9c9ce", paper: "#d9c9a8", none: "#c96f45" };
+  const col = colors[mat] || "#c96f45";
+  const originX = `calc(${(p.c + dir.dc * 0.9) * cell}% + ${cell / 2}%)`;
+  const originY = `calc(${(p.r + dir.dr * 0.9) * cell}% + ${cell / 2}%)`;
+  const puff = document.createElement("div");
+  puff.className = "puff";
+  puff.style.left = originX;
+  puff.style.top = originY;
+  puff.style.setProperty("--px", (dir.dc * 16) + "px");
+  puff.style.setProperty("--py", (dir.dr * 16 + 9) + "px");
+  stageEl.appendChild(puff);
+  setTimeout(() => puff.remove(), 520);
+  crashCallout(p, dir, item);
+
+  const counts = { ceramic: 11, glass: 14, tech: 7, metal: 8, paper: 10, none: 5 };
+  const count = counts[mat] || 9;
+  for (let k = 0; k < count; k++) {
+    const s = document.createElement("div");
+    s.className = "shard";
+    s.style.background = col;
+    s.style.left = originX;
+    s.style.top = originY;
+    if (mat === "paper") s.style.borderRadius = "1px";
+    if (mat === "glass") s.style.opacity = "0.82";
+    s.style.setProperty("--shard-size", (mat === "paper" ? 9 : mat === "glass" ? 5 : 6 + Math.random() * 4) + "px");
+    s.style.setProperty("--shard-life", (0.5 + Math.random() * 0.38) + "s");
+    s.style.setProperty("--sx", (dir.dc * (22 + Math.random() * 34) + Math.random() * 48 - 24) + "px");
+    s.style.setProperty("--sy", (dir.dr * (22 + Math.random() * 34) + Math.random() * -54 - 8) + "px");
+    s.style.setProperty("--sr", ((Math.random() > 0.5 ? 1 : -1) * (140 + Math.random() * 280)) + "deg");
+    stageEl.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+  breakBits(p, dir, mat, item);
+}
+
+function crashLine(itemId) {
+  const it = ITEMS[itemId] || ITEMS.mug;
+  const lines = {
+    ceramic: [it.name + " has entered floor custody.", "ceramic report: very audible.", it.name + ": hypothesis confirmed."],
+    glass: [it.name + " did the sparkly thing.", "glass incident logged.", it.name + " became several smaller problems."],
+    tech: [it.name + " has lost Wi-Fi privileges.", "tech support has been notified.", it.name + " is now airplane mode."],
+    metal: [it.name + " made the good noise.", "metal evidence: clink.", it.name + " filed a loud complaint."],
+    paper: [it.name + " fluttered dramatically.", "paperwork relocated.", it.name + " is now floor literature."],
+  };
+  const pool = lines[it.mat] || CRASH_TOASTS;
+  return pool[(moves + (itemId || "").length) % pool.length];
+}
+
+function crashCallout(p, dir, item) {
+  const n = board.n;
+  const cell = 100 / n;
+  const c = document.createElement("div");
+  c.className = "crashCallout";
+  c.textContent = calloutText(item);
+  c.style.setProperty("--cx", `calc(${(p.c + dir.dc * 0.8) * cell}% + ${cell / 2}%)`);
+  c.style.setProperty("--cy", `calc(${(p.r + dir.dr * 0.8) * cell}% + ${cell / 2}%)`);
+  stageEl.appendChild(c);
+  setTimeout(() => c.remove(), 920);
+}
+
+function calloutText(item) {
+  const mat = item.mat || "ceramic";
+  if (mat === "glass") return "tinkle!";
+  if (mat === "tech") return "bonk!";
+  if (mat === "metal") return "clink!";
+  if (mat === "paper") return "fwip!";
+  return "crash!";
+}
+
+function breakBits(p, dir, mat, item) {
+  const n = board.n;
+  const cell = 100 / n;
+  const x = `calc(${(p.c + dir.dc * 0.95) * cell}% + ${cell / 2}%)`;
+  const y = `calc(${(p.r + dir.dr * 0.95) * cell}% + ${cell / 2}%)`;
+  const glyphs = {
+    ceramic: ["◜", "◟", "●", "◠", "◡"],
+    glass: ["◇", "✦", "△", "✧", "⋄"],
+    tech: ["!", "×", "▣", "⚡"],
+    metal: ["•", "◦", "C", "⌁"],
+    paper: ["⌁", "◜", "◝", "—"],
+    none: ["•", "◦"],
+  }[mat] || ["•"];
+  const colors = {
+    ceramic: ["#f2d0a8", "#b7643e"],
+    glass: ["#dff8ff", "#78bdd6"],
+    tech: ["#324052", "#9fb4c9"],
+    metal: ["#d9d6cc", "#8d8980"],
+    paper: ["#f3dfb8", "#c19d62"],
+    none: ["#f2d0a8", "#b7643e"],
+  }[mat] || ["#f2d0a8", "#b7643e"];
+  const count = mat === "glass" ? 7 : mat === "paper" ? 6 : mat === "tech" ? 5 : 6;
+  for (let i = 0; i < count; i++) {
+    const b = document.createElement("div");
+    b.className = "breakBit";
+    b.textContent = glyphs[i % glyphs.length];
+    b.style.setProperty("--bx", x);
+    b.style.setProperty("--by", y);
+    b.style.setProperty("--bit-bg", colors[i % colors.length]);
+    b.style.setProperty("--bit-ink", mat === "tech" ? "#eaf6ff" : "#fffaf0");
+    b.style.setProperty("--bwbit", (mat === "paper" ? 20 : 13 + Math.random() * 9) + "px");
+    b.style.setProperty("--bhbit", (mat === "paper" ? 12 : 12 + Math.random() * 8) + "px");
+    b.style.setProperty("--brbit", mat === "glass" ? "2px" : mat === "paper" ? "3px" : "7px");
+    b.style.setProperty("--bitsize", (mat === "tech" ? 11 : 10 + Math.random() * 4) + "px");
+    b.style.setProperty("--dx", (dir.dc * (32 + Math.random() * 36) + Math.random() * 54 - 27) + "px");
+    b.style.setProperty("--dy", (dir.dr * (30 + Math.random() * 34) + Math.random() * -58 - 8) + "px");
+    b.style.setProperty("--rot", ((Math.random() > .5 ? 1 : -1) * (130 + Math.random() * 320)) + "deg");
+    b.style.setProperty("--bitlife", (.58 + Math.random() * .36) + "s");
+    stageEl.appendChild(b);
+    setTimeout(() => b.remove(), 1050);
+  }
+}
+
+let quipIdx = 0;
+function handReact() {
+  const hand = $("hand");
+  hand.classList.remove("lunge");
+  void hand.offsetWidth;
+  hand.classList.add("lunge");
+  if (quipIdx % 2 === 0) {                 /* don't overuse the yell */
+    const pool = handQuipPool();
+    const q = $("handQuip");
+    q.textContent = pool[Math.floor(quipIdx / 2) % pool.length];
+    q.classList.add("show");
+    setTimeout(() => q.classList.remove("show"), 900);
+  }
+  quipIdx++;
+}
+
+/* ---------- the interactive paw: the cat reaches into the frame ----------
+   sweep(dir): rides the swat — enters from the trailing edge and pushes.
+   slam(r, c): plants on a cell — refusals and red-dot pounces.          */
+/* paw timers are stored + epoch-guarded and every paw action cancels
+   the previous one's pending callbacks — rapid dot-tap-then-swipe,
+   fast-mode double swats, and mid-animation level changes all leave
+   the paw in a clean state                                          */
+let pawT1 = null, pawT2 = null;
+function pawClear() { clearTimeout(pawT1); clearTimeout(pawT2); }
+function pawSweep(dirName, lane) {
+  pawClear();
+  const ep = genEpoch;
+  const paw = $("pawOverlay");
+  const setPos = (x, y, deg) => {
+    paw.style.left = x + "%"; paw.style.top = y + "%";
+    paw.style.transform = "rotate(" + deg + "deg)";
+  };
+  /* paw points INTO the direction of travel, from the trailing edge */
+  const lanePct = lane && board ? ((lane.index + 0.5) / board.n * 100) : null;
+  if (dirName === "right") setPos(-8, lanePct == null ? 38 : lanePct - 10, 90);
+  else if (dirName === "left") setPos(91, lanePct == null ? 38 : lanePct - 10, -90);
+  else if (dirName === "down") setPos(lanePct == null ? 41 : lanePct - 8, -12, 180);
+  else setPos(lanePct == null ? 41 : lanePct - 8, 82, 0);
+  paw.classList.add("act");
+  const push = { right: [14, 0], left: [-14, 0], down: [0, 14], up: [0, -14] }[dirName];
+  requestAnimationFrame(() => {
+    if (ep !== genEpoch) return;
+    paw.style.transform += " translate(" + push[0] * 4 + "px, " + push[1] * 4 + "px)";
+  });
+  pawT1 = setTimeout(() => { if (ep === genEpoch) paw.classList.remove("act"); }, fastMode ? 220 : 340);
+}
+function pawSlamAt(xPct, yPct) {
+  pawClear();
+  const ep = genEpoch;
+  const paw = $("pawOverlay");
+  paw.style.left = (xPct - 6) + "%";
+  paw.style.top = (yPct - 10) + "%";
+  paw.style.transform = "rotate(0deg) scale(1.15)";
+  paw.classList.add("act");
+  pawT1 = setTimeout(() => { if (ep === genEpoch) paw.style.transform = "rotate(0deg) scale(1)"; }, 80);
+  pawT2 = setTimeout(() => { if (ep === genEpoch) paw.classList.remove("act"); }, 460);
+}
+function pawSlam(r, c) {
+  const n = board.n, cell = 100 / n;
+  pawSlamAt(c * cell + cell / 2 - 2.5, r * cell + 4);
+}
+
+/* ---------- ambient interruptions ----------
+   Cosmetic cat-culture moments between swipes. HOUSE RULES: never
+   during animation/modals/fetch, never blocking, never punishing,
+   and they never touch puzzle state — par stays honest. Any input
+   clears the stage instantly.                                     */
+let ambientTimer = null;
+let dotState = null;          /* { moves: n } while the red dot is live */
+let lastInputAt = Date.now();
+let birdShown = 0;
+
+function scheduleAmbient() {
+  clearTimeout(ambientTimer);
+  ambientTimer = setTimeout(ambientTick, 7000 + Math.random() * 8000);
+}
+function ambientTick() {
+  scheduleAmbient();
+  if (!board || animating || celebrating || winPending || modalOpen() || dotState) return;
+  if (Date.now() - lastInputAt < 4000) return;      /* don't interrupt active thinking */
+  const roll = Math.random();
+  if (roll < 0.45) redDotShow();
+  else if (roll < 0.7 && birdShown < 2) birdFly();  /* the bird is a rarer guest */
+}
+function cancelAmbient() {
+  lastInputAt = Date.now();
+  clearTimeout(birdTimer);
+  if (dotState) redDotHide(false);
+}
+
+/* THE RED DOT. It appears. The cat locks on. Tap it for the pounce. */
+function redDotShow() {
+  const dot = $("redDot");
+  dotState = { hops: 0 };
+  const hop = () => {
+    if (!dotState) return;
+    dot.style.left = (8 + Math.random() * 80) + "%";
+    dot.style.top = (8 + Math.random() * 80) + "%";
+    dotState.hopTimer = setTimeout(hop, 600 + Math.random() * 400);
+    if (++dotState.hops > 5) redDotHide(false);
+  };
+  dot.classList.add("on");
+  catState("windup");                     /* the cat LOCKS ON */
+  hop();
+}
+function redDotHide(caught) {
+  const dot = $("redDot");
+  if (dotState && dotState.hopTimer) clearTimeout(dotState.hopTimer);
+  dotState = null;
+  dot.classList.remove("on");
+  catState(null);
+  if (caught) {
+    const s = bumpStats({ dots: 1 });
+    showToast(["red dot: contained.", "dot neutralized. obviously.", "window patrol noted the incident. (" + s.dots + ")"][s.dots % 3]);
+  }
+}
+$("redDot").addEventListener("pointerdown", ev => {
+  ev.stopPropagation();
+  if (!dotState || !board) return;
+  lastInputAt = Date.now();          /* a pounce counts as input for the idle gate */
+  /* plant the paw exactly where the dot IS (its own stage coords) —
+     screen-rect math would drift under the stage's 3D lean          */
+  pawSlamAt(parseFloat($("redDot").style.left) || 50, parseFloat($("redDot").style.top) || 50);
+  sfx("thud");
+  redDotHide(true);
+});
+
+function comboBanner(count) {
+  const b = $("comboBanner");
+  b.textContent = count >= 4 ? "FULL COUNTER AUDIT" : count === 3 ? "TRIPLE FLOOR CUSTODY" : "DOUBLE BAP";
+  b.classList.remove("pop");
+  void b.offsetWidth;
+  b.classList.add("pop");
+}
+
+/* a bird passes the window. the cat chatters. nothing else happens. */
+let birdTimer = null;
+function birdFly() {
+  const bird = $("bird");
+  birdShown++;
+  bird.classList.remove("fly");
+  void bird.offsetWidth;
+  bird.classList.add("fly");
+  catState("watch", { dc: 1, dr: 0 });
+  if (birdShown <= 2) showToast("ek-ek-ek-ek-ek. window patrol active.");
+  clearTimeout(birdTimer);
+  const ep = genEpoch;
+  birdTimer = setTimeout(() => {
+    if (ep !== genEpoch) return;
+    /* never wipe a pose the game is deliberately holding (smug beat) */
+    if (!animating && !dotState && !catEl.classList.contains("smug")) catState(null);
+  }, 3300);
+}
+
+/* ---------- 7. win + damage report ---------- */
+function starsFor(m, par) { return m <= par ? 3 : m <= par + 2 ? 2 : 1; }
+
+function celebrate() {
+  if (celebrating) return;
+  celebrating = true;
+  const key = boardKey();
+  const alreadyDone = !!doneMap()[key];
+  const firstCaseFiled = mode === "cat" && !expertMode && levelIdx === 0 && !alreadyDone;
+  unstore("kio_board:" + key);
+  const par = currentPar();
+  const s = starsFor(moves, par);
+  const prevBest = readInt(bestKey(), 0, 1);
+  if (mode !== "daily" && (!prevBest || moves < prevBest)) store(bestKey(), String(moves));
+  sfx("win");
+
+  if (mode === "daily" && !alreadyDone) {
+    /* streak math is anchored to the PINNED puzzle date, not the wall
+       clock — solving the 11:58pm board at 12:02am still counts for
+       the day the board belongs to                                   */
+    const played = dailyDate();
+    const [py, pm, pd] = played.split("-").map(Number);
+    const y = new Date(py, pm - 1, pd, 12);   /* noon: immune to DST edges */
+    y.setDate(y.getDate() - 1);
+    const yStr = y.getFullYear() + "-" + String(y.getMonth() + 1).padStart(2, "0") +
+                 "-" + String(y.getDate()).padStart(2, "0");
+    const prev = readStr("kio_daily_done");
+    const streak = prev === yStr ? readInt("kio_daily_streak", 0, 0) + 1 : 1;
+    store("kio_daily_streak", String(streak));
+    store("kio_daily_done", played);
+  }
+  if (isCatRules() && !alreadyDone) {
+    /* the Floor Inventory + career ledger are credited at WIN, once
+       per board — swipe-undo-repeat can't farm them              */
+    let levelDamages = 0, levelItems = 0;
+    for (const p of pieces) if (p.g && p.t === "D" && p.item) {
+      creditGallery(p.item);
+      levelDamages += (ITEMS[p.item] || {}).price || 0;
+      levelItems++;
+    }
+    bumpStats({
+      /* items is derived from the gallery — never patched here */
+      wins: 1,
+      damages: levelDamages,
+      perfects: s === 3 ? 1 : 0,
+      dailies: mode === "daily" ? 1 : 0,
+      streakMax: readInt("kio_daily_streak", 0, 0),
+    });
+  }
+  markDone(key);
+  queueCounterCatShelfRelay(key, moves);
+  renderHud();
+
+  const receiptEl = $("receipt");
+  const winGuide = $("winGuide");
+  winGuide.hidden = !firstCaseFiled;
+  winGuide.textContent = firstCaseFiled
+    ? "You have the loop: read the arrow gaps, swat, then use Undo or Reset whenever you want. Floor is your personal case record; bringing a case to the Shelf is optional."
+    : "";
+  lastShareText = "";
+  $("shareText").classList.add("hidden");
+  if (isCatRules()) {
+    /* THE DAMAGE REPORT — the human's receipt, the cat's trophy list */
+    const fallen = pieces.filter(p => p.g && p.t === "D");
+    let total = 0;
+    let rows = "";
+    for (const p of fallen) {
+      const it = ITEMS[p.item] || ITEMS.mug;
+      total += it.price;
+      rows += '<div class="rline"><span><span class="ricon">' + it.icon + "</span> " + it.name + '</span><span>$' + it.price + "</span></div>";
+    }
+    const footer = SHARE_FOOTERS[statsData().wins % SHARE_FOOTERS.length];
+    receiptEl.innerHTML = "<div style='text-align:center;font-weight:700'>— COUNTER CAT CASE FILE —</div>" + rows +
+      '<div class="rline rtotal"><span>floor custody total</span><span>$' + total + "</span></div>" +
+      '<div class="rline" style="color:var(--ink-soft)"><span>career total</span><span>$' + statsData().damages.toLocaleString() + "</span></div>" +
+      '<div style="text-align:center;margin-top:4px;color:var(--ink-soft)">' + footer + "</div>";
+    lastShareText = "Counter Cat case file: " + moves + " swats, $" + total + " in damages, " + fallen.length + " items in floor custody. " + footer;
+    receiptEl.classList.remove("hidden");
+    $("winTitle").textContent = mode === "daily"
+      ? (alreadyDone ? "Case file: already archived" : "Cat duty: filed 🐾")
+      : ["Case closed 🐾", "Floor custody complete 🐾", "The defendant slow-blinked 🐾"][levelIdx % 3];
+    if (firstCaseFiled) $("winTitle").textContent = "First case filed 🐾";
+    const verdict = s === 3 ? "A PERFECT CRIME" : s === 2 ? "a clean getaway" : "further research required";
+    $("winSub").textContent = moves + " swats · par " + par + " · " + verdict +
+      (mode === "daily" ? " · 🔥 streak " + readInt("kio_daily_streak", 1, 0) : "");
+    $("btnWinNext").textContent = mode === "daily" ? "Back to levels" : (firstCaseFiled ? "Open Case 02 →" : "Next level →");
+    $("btnWinNext").style.display = (mode !== "daily" && levelIdx >= levels().length - 1) ? "none" : "";
+  } else {
+    receiptEl.classList.add("hidden");
+    $("winTitle").textContent = ["All home! 🐤", "Every duckling tucked in 🐤", "The pond is quiet 🐤"][levelIdx % 3];
+    $("winSub").textContent = moves + " swipes · par " + par +
+      (s === 3 ? " · perfect choreography" : s === 2 ? " · close to par" : " · they got there");
+    $("btnWinNext").textContent = "Next level →";
+    $("btnWinNext").style.display = levelIdx >= levels().length - 1 ? "none" : "";
+  }
+  $("winStars").textContent = "★★★".slice(0, s) + "☆☆☆".slice(0, 3 - s);
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => $("winOverlay").classList.add("show"), fastMode ? 250 : 600);
+}
+
+$("btnReplay").addEventListener("click", () => startLevel());
+$("btnShare").addEventListener("click", async () => {
+  const text = lastShareText || "Counter Cat filed a case. The cat has no comment.";
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+    showToast("crime report copied");
+  } catch (e) {
+    showToast("copy blocked — report shown below");
+  }
+  $("shareText").textContent = text;
+  $("shareText").classList.remove("hidden");
+});
+$("btnShelf").addEventListener("click", () => {
+  window.location.assign("../shelf/?counter-cat=relay");
+});
+$("btnWinNext").addEventListener("click", () => {
+  if (mode === "daily") {
+    mode = dailyReturnMode;
+    levelIdx = Math.min(readInt("kio_level:" + mode, 0, 0), Math.max(levels().length - 1, 0));
+  }
+  else if (levelIdx < levels().length - 1) levelIdx++;
+  startLevel();
+});
+
+/* ---------- 8. gallery ---------- */
+function openGallery() {
+  const g = galleryData();
+  const grid = $("galleryGrid");
+  grid.innerHTML = "";
+  for (const id of TARGET_POOL) {
+    const it = ITEMS[id];
+    const count = g[id] || 0;
+    const div = document.createElement("div");
+    div.className = "gitem" + (count ? "" : " locked");
+    div.innerHTML = '<div class="gicon">' + it.icon + "</div><b>" + (count ? it.name : "???") + "</b>" + (count ? "×" + count : "—");
+    grid.appendChild(div);
+  }
+  $("gallerySub").textContent = galleryTotal()
+    ? galleryTotal() + " things have found the floor. the science continues."
+    : "nothing knocked off yet. the counter awaits.";
+  const st = statsData();
+  checkAchievements(st);                 /* idempotent — catches up any missed milestones */
+  $("careerLine").textContent = "career damages: $" + st.damages.toLocaleString() +
+    " · counters cleared: " + st.wins + (st.bestCombo >= 2 ? " · best combo: " + st.bestCombo : "");
+  const earned = earnedSet();
+  $("achList").innerHTML = ACHIEVEMENTS.map(a => {
+    const got = earned.has(a.id);
+    return '<div class="ach' + (got ? " earned" : "") + '"><span class="medal">🏅</span><span><b>' +
+      (got ? a.name : "???") + "</b>" + a.desc + "</span></div>";
+  }).join("");
+  $("galleryOverlay").classList.add("show");
+}
+$("btnGallery").addEventListener("click", openGallery);
+$("btnGalleryClose").addEventListener("click", () => $("galleryOverlay").classList.remove("show"));
+$("galleryOverlay").addEventListener("pointerdown", ev => {
+  if (ev.target === $("galleryOverlay")) $("galleryOverlay").classList.remove("show");
+});
+
+/* ---------- 9. input ----------
+   Swipes are captured on the GAME ZONE (cat, board, floor) rather
+   than the whole window, so the page itself can scroll on small
+   screens. Overlay backdrops are excluded, so dismissing a modal
+   with a drag can never become a board swipe.                    */
+let swipe = null;
+window.addEventListener("pointerdown", ev => {
+  cancelAmbient();
+  if (swipe || modalOpen()) return;
+  if (ev.target.closest("button, details, a, .bigCard, .overlay")) return;
+  if (!ev.target.closest("#stage, #catPerch, #floor")) return;
+  swipe = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
+});
+window.addEventListener("pointerup", ev => {
+  if (!swipe || ev.pointerId !== swipe.id) return;
+  const start = swipe;
+  const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+  swipe = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+  const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+  doSwipe(dir, laneFromPoint(start.x, start.y, dir));
+});
+window.addEventListener("pointercancel", ev => {
+  if (swipe && ev.pointerId === swipe.id) swipe = null;
+});
+window.addEventListener("keydown", ev => {
+  if (modalOpen()) {
+    if (ev.key === "Escape") {
+      $("galleryOverlay").classList.remove("show");
+      if ($("briefOverlay").classList.contains("show")) dismissBriefing();
+    }
+    return;                            /* arrows/U/R never reach the board under a modal */
+  }
+  const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  if (map[ev.key]) { ev.preventDefault(); doSwipe(map[ev.key], defaultLane(map[ev.key])); }
+  else if (ev.key === "u" || ev.key === "U") undo();
+  else if (ev.key === "r" || ev.key === "R") resetLevel();
+});
+
+function undo() {
+  cancelAmbient();                   /* keyboard 'u' is input too — clears the dot */
+  if (animating || celebrating || !board || !undoStack.length) return;
+  pieces = undoStack.pop();
+  moves = Math.max(0, moves - 1);
+  placePieces(true);
+  renderFloor();
+  renderHud();
+  saveBoard();
+}
+function resetLevel() {
+  cancelAmbient();                   /* keyboard 'r' is input too */
+  if (animating || celebrating || !board) return;
+  if (!moves) return;
+  pieces = initialPieces.map(p => ({ ...p }));
+  undoStack = [];
+  moves = 0;
+  fallSeq = 0;
+  placePieces(true);
+  renderFloor();
+  renderHud();
+  saveBoard();
+}
+
+$("btnUndo").addEventListener("click", undo);
+$("btnReset").addEventListener("click", resetLevel);
+/* nav is gated on `celebrating` so the 250-600ms pre-overlay beat can't
+   be used to skip the win card; mid-ANIMATION nav stays allowed — the
+   epoch guard makes it safe, and blocking it would feel unresponsive  */
+$("btnPrev").addEventListener("click", () => { if (!celebrating && !winPending && mode !== "daily" && levelIdx > 0) { levelIdx--; startLevel(); } });
+$("btnNext").addEventListener("click", () => { if (!celebrating && !winPending && mode !== "daily" && levelIdx < levels().length - 1) { levelIdx++; startLevel(); } });
+
+$("btnDaily").addEventListener("click", () => {
+  if (celebrating || winPending) return;
+  if (mode === "daily") {
+    mode = dailyReturnMode;
+    levelIdx = Math.min(readInt("kio_level:" + mode, 0, 0), Math.max(levels().length - 1, 0));
+  } else {
+    dailyReturnMode = mode;
+    mode = "daily";
+  }
+  startLevel();
+});
+$("btnSound").addEventListener("click", () => {
+  soundOn = !soundOn;
+  store("kio_mute", soundOn ? "0" : "1");
+  renderHud();
+  if (soundOn) sfx("settle");
+});
+$("btnFast").addEventListener("click", () => {
+  fastMode = !fastMode;
+  store("kio_fast", fastMode ? "1" : "0");
+  renderHud();
+  showToast(fastMode ? "⚡ fast mode — straight to business" : "drama restored — savor the teeter");
+});
+$("btnExpert").addEventListener("click", () => {
+  if (animating || celebrating || winPending) return;
+  expertMode = !expertMode;
+  store("kio_expert", expertMode ? "1" : "0");
+  showToast(expertMode ? "expert baps: one lane moves" : "tilt mode: whole counter moves");
+  startLevel();
+});
+
+/* ---------- theme (manual override wins, else OS) ---------- */
+function applyThemePref() {
+  const pref = readStr("kio_theme");
+  if (pref) document.documentElement.dataset.theme = pref;
+  const dark = document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  $("btnTheme").textContent = dark ? "☀️" : "🌙";
+}
+$("btnTheme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  store("kio_theme", dark ? "light" : "dark");
+  applyThemePref();
+});
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+/* ---------- 10. boot ---------- */
+applyThemePref();
+levelIdx = Math.min(readInt("kio_level:" + mode, 0, 0), Math.max(levels().length - 1, 0));
+function dismissBriefing() {
+  store("kio_seen_briefing", "1");
+  $("briefOverlay").classList.remove("show");
+}
+$("btnBriefStart").addEventListener("click", () => {
+  dismissBriefing();
+});
+startLevel();
+if (shouldShowStarterBriefing) setTimeout(() => {
+  $("briefOverlay").classList.add("show");
+  $("btnBriefStart").focus();
+}, 350);
+scheduleAmbient();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

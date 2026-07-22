@@ -1,0 +1,13 @@
+{
+  "name": "@teammultiply/counter-cat-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@teammultiply/ecosystem-core": "0.1.0",
+    "@teammultiply/game-bridge": "0.1.0"
+  }
+}
