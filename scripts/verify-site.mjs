@@ -60,7 +60,7 @@ for (const [route, title] of legacyRoutes) {
 }
 
 for (const route of publicFiles) {
-  const response = await fetch(baseUrl + route, { redirect: "manual" });
+  const response = await fetch(baseUrl + route, { redirect: "follow" });
   if (response.status !== 200) failures.push(`${route}: public artifact returned ${response.status}`);
 }
 
