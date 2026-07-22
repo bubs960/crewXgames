@@ -109,7 +109,7 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
     sections: [
       {
         heading: "Starter provider and placement",
-        body: <p>The starter batch uses Adsterra. Game detail pages reserve one 300 × 250 unit. Home, Games, and Daily use one 728 × 90 unit on wider screens or one 300 × 250 unit on smaller screens. Social Bar can run on those same eligible content pages. No banner is mounted inside a game or the Living Shelf. See Adsterra’s <a href="https://adsterra.com/banner-ads/" rel="noreferrer" target="_blank">banner information</a> and <a href="https://adsterra.com/social-bar-ad/" rel="noreferrer" target="_blank">Social Bar information</a>.</p>
+        body: <p>The approved Adsterra inventory is separated by surface for useful reporting. Home, Games, and Daily share a discovery batch; the six game-detail pages share a second batch. Each eligible page reserves one 728 × 90 unit on wider screens or one 300 × 250 unit on smaller screens, plus the matching optional Social Bar. No banner is mounted inside a game or the Living Shelf. See Adsterra’s <a href="https://adsterra.com/banner-ads/" rel="noreferrer" target="_blank">banner information</a> and <a href="https://adsterra.com/social-bar-ad/" rel="noreferrer" target="_blank">Social Bar information</a>.</p>
       },
       {
         heading: "What stays out",
@@ -194,6 +194,10 @@ const parseRoute = (path: string): SiteRoute => {
 
 const monetizedRouteKinds = new Set<RouteKind>(["home", "games", "detail", "daily"]);
 const isMonetizedRoute = (route: SiteRoute) => monetizedRouteKinds.has(route.kind);
+const adSurfaceForRoute = (route: SiteRoute): "content" | "game-detail" | null => {
+  if (route.kind === "detail") return "game-detail";
+  return route.kind === "home" || route.kind === "games" || route.kind === "daily" ? "content" : null;
+};
 
 const titleFor = (route: SiteRoute) => {
   if (route.kind === "home") return "CrewMultiply Play | Small moves. Big mischief.";
@@ -343,7 +347,7 @@ export const SiteApp = () => {
       </main>
       <SiteFooter onLink={onLink} onOpenPrivacy={() => window.dispatchEvent(new Event(openPrivacyEvent))} />
       <PrivacyPreferences />
-      <AdsterraSocialBar enabled={isMonetizedRoute(route)} />
+      <AdsterraSocialBar surface={adSurfaceForRoute(route)} />
     </div>
   );
 };

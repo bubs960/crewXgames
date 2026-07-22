@@ -22,21 +22,41 @@ declare global {
   }
 }
 
-const mediumRectangle: DisplayConfig = {
-  key: "6fdbf640fe1300e9f3f4f31c3eb48dd2",
-  width: 300,
-  height: 250,
-  src: "https://www.highperformanceformat.com/6fdbf640fe1300e9f3f4f31c3eb48dd2/invoke.js"
+const displayInventory: Record<DisplayPlacement, { compact: DisplayConfig; wide: DisplayConfig }> = {
+  content: {
+    compact: {
+      key: "6fdbf640fe1300e9f3f4f31c3eb48dd2",
+      width: 300,
+      height: 250,
+      src: "https://www.highperformanceformat.com/6fdbf640fe1300e9f3f4f31c3eb48dd2/invoke.js"
+    },
+    wide: {
+      key: "841bc3e48da39de5799b6955712cee8b",
+      width: 728,
+      height: 90,
+      src: "https://www.highperformanceformat.com/841bc3e48da39de5799b6955712cee8b/invoke.js"
+    }
+  },
+  "game-detail": {
+    compact: {
+      key: "cd806ea6dca284c46e90b3c5a8e4c038",
+      width: 300,
+      height: 250,
+      src: "https://www.highperformanceformat.com/cd806ea6dca284c46e90b3c5a8e4c038/invoke.js"
+    },
+    wide: {
+      key: "34525f31845d182ed2a2b3eb448ecc74",
+      width: 728,
+      height: 90,
+      src: "https://www.highperformanceformat.com/34525f31845d182ed2a2b3eb448ecc74/invoke.js"
+    }
+  }
 };
 
-const leaderboard: DisplayConfig = {
-  key: "841bc3e48da39de5799b6955712cee8b",
-  width: 728,
-  height: 90,
-  src: "https://www.highperformanceformat.com/841bc3e48da39de5799b6955712cee8b/invoke.js"
+export const socialBarSources: Record<DisplayPlacement, string> = {
+  content: "https://pl30490413.effectivecpmnetwork.com/1f/03/55/1f03554e30d399a741a4d96f44ade128.js",
+  "game-detail": "https://pl30490531.effectivecpmnetwork.com/82/4b/d4/824bd44bc0aa34825e81736d2736fee7.js"
 };
-
-export const socialBarSrc = "https://pl30490413.effectivecpmnetwork.com/1f/03/55/1f03554e30d399a741a4d96f44ade128.js";
 
 const useLeaderboardViewport = () => {
   const query = "(min-width: 800px)";
@@ -56,7 +76,8 @@ export const AdsterraDisplaySlot = ({ placement }: { placement: DisplayPlacement
   const choice = usePrivacyChoice();
   const leaderboardViewport = useLeaderboardViewport();
   const frameRef = useRef<HTMLDivElement>(null);
-  const config = placement === "content" && leaderboardViewport ? leaderboard : mediumRectangle;
+  const inventory = displayInventory[placement];
+  const config = leaderboardViewport ? inventory.wide : inventory.compact;
   const [status, setStatus] = useState<"idle" | "loading" | "failed">("idle");
 
   useEffect(() => {
@@ -113,11 +134,11 @@ export const AdsterraDisplaySlot = ({ placement }: { placement: DisplayPlacement
   );
 };
 
-export const AdsterraSocialBar = ({ enabled }: { enabled: boolean }) => {
+export const AdsterraSocialBar = ({ surface }: { surface: DisplayPlacement | null }) => {
   const choice = usePrivacyChoice();
 
   useEffect(() => {
-    if (!enabled || choice !== "optional") return;
+    if (!surface || choice !== "optional") return;
 
     const injectedNodes = new Set<Node>();
     const observer = new MutationObserver((records) => {
@@ -131,9 +152,9 @@ export const AdsterraSocialBar = ({ enabled }: { enabled: boolean }) => {
     observer.observe(document.body, { childList: true });
 
     const script = document.createElement("script");
-    script.src = socialBarSrc;
+    script.src = socialBarSources[surface];
     script.async = true;
-    script.dataset.adsterraSocialBar = "approved";
+    script.dataset.adsterraSocialBar = surface;
     document.body.appendChild(script);
 
     return () => {
@@ -141,7 +162,7 @@ export const AdsterraSocialBar = ({ enabled }: { enabled: boolean }) => {
       script.remove();
       for (const node of injectedNodes) node.parentNode?.removeChild(node);
     };
-  }, [choice, enabled]);
+  }, [choice, surface]);
 
   return null;
 };

@@ -137,20 +137,24 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     expect(crochetStage).toContain('aria-label={node.symbol + ", " + node.label');
   });
 
-  it("ships only the approved consent-gated Adsterra starter batch", () => {
+  it("ships only the approved consent-gated Adsterra surface batches", () => {
     const ads = readFileSync(resolve(process.cwd(), "apps/web/src/site/AdsterraAds.tsx"), "utf8");
     const site = readFileSync(resolve(process.cwd(), "apps/web/src/site/SiteApp.tsx"), "utf8");
     const privacy = readFileSync(resolve(process.cwd(), "apps/web/src/site/privacyPreferences.ts"), "utf8");
 
     expect(ads).toContain('key: "6fdbf640fe1300e9f3f4f31c3eb48dd2"');
     expect(ads).toContain('key: "841bc3e48da39de5799b6955712cee8b"');
+    expect(ads).toContain('key: "cd806ea6dca284c46e90b3c5a8e4c038"');
+    expect(ads).toContain('key: "34525f31845d182ed2a2b3eb448ecc74"');
     expect(ads).toContain("https://pl30490413.effectivecpmnetwork.com/1f/03/55/1f03554e30d399a741a4d96f44ade128.js");
-    expect(ads).toContain('if (!enabled || choice !== "optional") return;');
+    expect(ads).toContain("https://pl30490531.effectivecpmnetwork.com/82/4b/d4/824bd44bc0aa34825e81736d2736fee7.js");
+    expect(ads).toContain('if (!surface || choice !== "optional") return;');
     expect(ads).toContain('if (!frame || choice !== "optional")');
     expect(ads.toLowerCase()).not.toContain("popunder");
     expect(site).toContain('const monetizedRouteKinds = new Set<RouteKind>(["home", "games", "detail", "daily"])');
+    expect(site).toContain('if (route.kind === "detail") return "game-detail";');
     expect(site).toContain('<AdsterraDisplaySlot placement="game-detail" />');
-    expect(site).toContain('<AdsterraSocialBar enabled={isMonetizedRoute(route)} />');
+    expect(site).toContain('<AdsterraSocialBar surface={adSurfaceForRoute(route)} />');
     expect(site).toContain("Popunders and clickunders are never allowed.");
     expect(privacy).toContain('export const privacyPreferenceKey = "cm_privacy_choice_v1"');
   });

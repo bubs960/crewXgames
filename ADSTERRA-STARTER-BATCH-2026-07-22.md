@@ -1,15 +1,15 @@
-# Adsterra starter batch — July 22, 2026
+# Adsterra approved inventory — July 22, 2026
 
 ## Approved inventory
 
-| Surface | Wider screens | Smaller screens | Social Bar |
-| --- | --- | --- | --- |
-| Home | 728 × 90 | 300 × 250 | Optional |
-| Games index | 728 × 90 | 300 × 250 | Optional |
-| Daily | 728 × 90 | 300 × 250 | Optional |
-| Six game detail pages | 300 × 250 | 300 × 250 | Optional |
+| Surface | Reporting batch | Wider screens | Smaller screens | Social Bar |
+| --- | --- | --- | --- | --- |
+| Home | Discovery | 728 × 90 | 300 × 250 | Discovery code · optional |
+| Games index | Discovery | 728 × 90 | 300 × 250 | Discovery code · optional |
+| Daily | Discovery | 728 × 90 | 300 × 250 | Discovery code · optional |
+| Six game detail pages | Game detail | 728 × 90 | 300 × 250 | Game-detail code · optional |
 
-One display unit is mounted per eligible page. The current codes are intentionally shared across pages because Adsterra issued one starter batch. `AdsterraAds.tsx` is the single replacement point when route-specific or game-specific placement codes become available.
+One display unit is mounted per eligible page. The two approved batches separate discovery traffic from game-detail traffic without multiplying inventory across six games. `AdsterraAds.tsx` remains the single replacement point when more route-specific or game-specific placement codes become useful.
 
 ## Excluded surfaces
 
@@ -26,17 +26,16 @@ No Adsterra request is made until the visitor chooses **Allow optional**. **Nece
 
 Adsterra’s supplied loaders dynamically add campaign-specific HTTPS scripts, frames, images, and measurement requests, including hosts that are not known at build time. The Cloudflare Content Security Policy therefore permits those HTTPS resource classes while continuing to block objects, outside framing, unapproved forms, and sensitive browser capabilities. The application mounts provider loaders only on monetized routes after consent; that gate—not a fixed provider-host allowlist—is the control that prevents third-party requests before permission.
 
-## Next code batch
+## Future code batches
 
-When Adsterra enables additional placement codes, prefer unique codes by surface class before creating one code per game:
+If Adsterra enables more placement codes, split the remaining shared discovery batch before creating one code per game:
 
-1. Home / discovery leaderboard
-2. Games index leaderboard
-3. Daily leaderboard
-4. Game-detail medium rectangle
-5. Optional per-game detail codes only if reporting or advertiser performance justifies the added inventory
+1. Home discovery
+2. Games index
+3. Daily
+4. Optional per-game detail codes only if reporting or advertiser performance justifies the added inventory
 
-This keeps reporting useful without multiplying scripts unnecessarily. The Social Bar remains one shared site code unless Adsterra requires otherwise.
+This keeps reporting useful without multiplying scripts unnecessarily. Social Bar reporting is currently separated into the same discovery and game-detail surface classes.
 
 ## Cloudflare and domain
 
