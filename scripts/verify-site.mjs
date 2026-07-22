@@ -40,6 +40,12 @@ const publicFiles = [
   "/social-card.png"
 ];
 
+const expectedHeaders = [
+  "content-security-policy",
+  "permissions-policy",
+  "x-frame-options"
+];
+
 const failures = [];
 for (const route of siteRoutes) {
   const response = await fetch(baseUrl + route, { redirect: "manual" });
@@ -56,6 +62,13 @@ for (const [route, title] of legacyRoutes) {
 for (const route of publicFiles) {
   const response = await fetch(baseUrl + route, { redirect: "manual" });
   if (response.status !== 200) failures.push(`${route}: public artifact returned ${response.status}`);
+}
+
+const homeResponse = await fetch(baseUrl + "/", { redirect: "manual" });
+if (baseUrl.startsWith("https://")) {
+  for (const header of expectedHeaders) {
+    if (!homeResponse.headers.has(header)) failures.push(`/: missing production ${header} header`);
+  }
 }
 
 if (failures.length) {

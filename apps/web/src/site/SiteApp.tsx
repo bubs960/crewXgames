@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { AdsterraDisplaySlot, AdsterraSocialBar } from "./AdsterraAds";
 import { gameBySlug, games, type GameDefinition } from "./gameCatalog";
+import {
+  openPrivacyEvent,
+  readPrivacyChoice,
+  savePrivacyChoice,
+  type PrivacyChoice
+} from "./privacyPreferences";
 import "./SiteApp.css";
 
 type RouteKind = "home" | "games" | "detail" | "daily" | "about" | "privacy" | "terms" | "cookies" | "ads-and-rewards" | "accessibility" | "contact" | "not-found";
@@ -33,15 +40,15 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
       },
       {
         heading: "What this build does not add",
-        body: <p>This release does not ask players to create an account and does not load an advertising network or analytics tag. There is no cloud-save, public profile, chat, payment flow, or leaderboard in the current implementation.</p>
+        body: <p>This release does not ask players to create an account and does not load an analytics tag. There is no cloud-save, public profile, chat, payment flow, or leaderboard. Adsterra advertising is the only optional third-party integration in this starter release, and its scripts stay off unless you choose “Allow optional.”</p>
       },
       {
         heading: "Hosting and future services",
-        body: <p>A host may process ordinary delivery and security information such as requests and IP addresses. Before a public release, CrewMultiply Play must name its legal operator, hosting provider, retention terms, and every enabled analytics, advertising, consent, or identity provider here.</p>
+        body: <p>Cloudflare Pages is the intended host and may process ordinary delivery and security information such as requests, IP addresses, browser details, and security signals. Before public launch, CrewMultiply Play must finish the legal operator, retention, regional transfer, and verified contact details in this notice.</p>
       },
       {
-        heading: "Planned advertising provider",
-        body: <p>CrewMultiply Play intends to use Adsterra for clearly labelled display advertising, but no Adsterra code, request, cookie, identifier, or data flow is active in this build. Before activation, this notice must document the exact integration, purposes, data categories, legal roles, retention, regions, audience safeguards, and consent or opt-out controls. Provider references: <a href="https://adsterra.com/privacy-policy-managed/" rel="noreferrer" target="_blank">Adsterra privacy policy</a> and <a href="https://adsterra.com/cookies/" rel="noreferrer" target="_blank">Adsterra cookies policy</a>.</p>
+        heading: "Advertising provider and data flow",
+        body: <p>After “Allow optional,” eligible website pages can load Adsterra 300 × 250 or 728 × 90 display ads from highperformanceformat.com and an Adsterra Social Bar from effectivecpmnetwork.com. The provider, its advertising partners, and destination sites may receive an IP address, device and browser information, page/referrer details, identifiers, approximate location, and ad-view or click information, and may use cookies or similar storage. The exact advertiser domains and retention can vary by served campaign. No Adsterra script loads after “Necessary only.” Provider references: <a href="https://adsterra.com/privacy-policy-managed/" rel="noreferrer" target="_blank">Adsterra privacy policy</a>, <a href="https://adsterra.com/cookies/" rel="noreferrer" target="_blank">Adsterra cookies policy</a>, and <a href="https://adsterra.com/social-bar-ad/" rel="noreferrer" target="_blank">Social Bar format</a>.</p>
       },
       {
         heading: "Audience and choices",
@@ -64,7 +71,7 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
       },
       {
         heading: "Advertising and third-party destinations",
-        body: <p>The free service may later contain clearly identified Adsterra display advertising. No Adsterra code is active in this build. Advertisements and their destination sites are controlled by third parties and may have separate terms and privacy practices; the product placement rules are described in <a href="/ads-and-rewards/">Ads &amp; Rewards</a>.</p>
+        body: <p>The free service can contain clearly identified Adsterra display advertising and an Adsterra Social Bar on eligible content pages after optional advertising is allowed. Advertisements and their destination sites are controlled by third parties and may have separate terms and privacy practices. Never automate ad views or clicks. Our placement rules are described in <a href="/ads-and-rewards/">Ads &amp; Rewards</a>.</p>
       },
       {
         heading: "Availability",
@@ -83,34 +90,34 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
       },
       {
         heading: "Optional technologies",
-        body: <p>No optional advertising or analytics technologies are active in this build. Adsterra is the intended advertising provider, but its scripts remain absent. If it is enabled later, this page will list the actual provider purpose, storage key or identifier, retention period, and the way to withdraw consent before optional technologies load.</p>
+        body: <p>Adsterra display and Social Bar scripts can load only after you select “Allow optional.” They are used to request, display, target, limit, and measure advertising. Selecting “Necessary only” keeps those requests off. If you withdraw a previous optional choice, the page reloads so injected third-party advertising is removed.</p>
       },
       {
         heading: "Provider inventory",
-        body: <p>Current inventory: necessary local game storage. Planned but inactive: Adsterra display advertising. The final inventory will be based on the code actually deployed and the selected Adsterra product—not copied from a generic provider list. Review the provider’s <a href="https://adsterra.com/cookies/" rel="noreferrer" target="_blank">cookies information</a> and <a href="https://adsterra.com/privacy-policy-managed/" rel="noreferrer" target="_blank">privacy policy</a> before activation.</p>
+        body: <p>Necessary first-party record: <code>cm_privacy_choice_v1</code>, stored in localStorage until site data is cleared, records the choice and save time. Optional providers: highperformanceformat.com for 300 × 250 and 728 × 90 display units, and effectivecpmnetwork.com for Social Bar. Served ads can contact additional advertiser and measurement domains and can create provider-controlled cookies or identifiers with varying retention. Review Adsterra’s <a href="https://adsterra.com/cookies/" rel="noreferrer" target="_blank">cookies information</a> and <a href="https://adsterra.com/privacy-policy-managed/" rel="noreferrer" target="_blank">privacy policy</a>.</p>
       },
       {
         heading: "Your controls",
-        body: <p>You can clear browser cookies, cache, and site data through your browser settings. Doing so may reset local game progress. A public release must add region-appropriate consent and opt-out controls before optional tracking is introduced.</p>
+        body: <p>Open “Privacy choices” in any footer to allow or withdraw optional advertising. You can also clear browser cookies, cache, and site data; doing so may reset local game progress. The launch review still must confirm whether more granular consent, Global Privacy Control handling, or region-specific opt-outs are required.</p>
       }
     ]
   },
   "ads-and-rewards": {
     title: "Ads can fund play without becoming the game.",
     eyebrow: "Advertising and rewards standard",
-    intro: "Adsterra is the intended advertising provider, but no ad script is active in this build. These are the product rules that must stay true before advertising is introduced.",
+    intro: "Adsterra display advertising and Social Bar are the approved starter formats. They load only after an optional privacy choice and stay outside active play.",
     sections: [
       {
-        heading: "Planned provider and placement",
-        body: <p>The intended Phase 1 provider is Adsterra. This build renders clearly labelled, size-stable placeholders only; no provider code or ad response is loaded. Provider code will stay off until legal review, consent behavior, category controls, mobile layout, performance, and failure states are verified. See <a href="https://adsterra.com/banner-ads/" rel="noreferrer" target="_blank">Adsterra’s banner documentation</a>.</p>
+        heading: "Starter provider and placement",
+        body: <p>The starter batch uses Adsterra. Game detail pages reserve one 300 × 250 unit. Home, Games, and Daily use one 728 × 90 unit on wider screens or one 300 × 250 unit on smaller screens. Social Bar can run on those same eligible content pages. No banner is mounted inside a game or the Living Shelf. See Adsterra’s <a href="https://adsterra.com/banner-ads/" rel="noreferrer" target="_blank">banner information</a> and <a href="https://adsterra.com/social-bar-ad/" rel="noreferrer" target="_blank">Social Bar information</a>.</p>
       },
       {
         heading: "What stays out",
-        body: <p>No popunders, Social Bar or notification-like overlays, Smartlinks, forced active-play interstitials, click disguises, or rewards required for campaign completion. A player should never have to confuse an ad with a game control.</p>
+        body: <p><strong>Popunders and clickunders are never allowed.</strong> Smartlinks, forced active-play interstitials, click disguises, and rewards required for campaign completion also stay out. The approved Social Bar may use floating in-page templates, so it is limited to eligible website content and excluded from active games, the Living Shelf, legal/support pages, offline pages, and error pages.</p>
       },
       {
-        heading: "What must happen first",
-        body: <p>Before any provider is enabled, the legal operator, audience classification, provider list, privacy disclosures, consent flow, category controls, and mobile placement review must be complete. Rejecting optional technology must leave base games playable.</p>
+        heading: "Choice and control",
+        body: <p>Adsterra scripts remain absent until “Allow optional” is selected. “Necessary only” leaves every base game playable. Withdrawing optional advertising reloads the page to clear injected ad UI. Audience classification, category controls, real-device layout, provider behavior, and the final legal operator details still require launch review.</p>
       },
       {
         heading: "Reward integrity",
@@ -159,8 +166,6 @@ const legalPages: Record<"privacy" | "terms" | "cookies" | "ads-and-rewards" | "
 };
 
 const legacyPaths = new Set(games.map((game) => game.playPath));
-const privacyPreferenceKey = "cm_privacy_choice_v1";
-const legacyPrivacyPreferenceKey = "tm_privacy_choice_v1";
 
 const readPath = () => {
   const pathname = window.location.pathname.replace(/\/+$/, "");
@@ -182,6 +187,9 @@ const parseRoute = (path: string): SiteRoute => {
   if (detail) return { kind: "detail", slug: detail[1] };
   return { kind: "not-found" };
 };
+
+const monetizedRouteKinds = new Set<RouteKind>(["home", "games", "detail", "daily"]);
+const isMonetizedRoute = (route: SiteRoute) => monetizedRouteKinds.has(route.kind);
 
 const titleFor = (route: SiteRoute) => {
   if (route.kind === "home") return "CrewMultiply Play | Small moves. Big mischief.";
@@ -294,6 +302,8 @@ export const SiteApp = () => {
   const onLink = (event: MouseEvent<HTMLAnchorElement>) => {
     const to = event.currentTarget.getAttribute("href");
     if (!to || !to.startsWith("/") || to.startsWith("/shelf/") || legacyPaths.has(to) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const targetPath = to.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
+    if (isMonetizedRoute(route) !== isMonetizedRoute(parseRoute(targetPath))) return;
     event.preventDefault();
     navigate(to);
   };
@@ -327,8 +337,9 @@ export const SiteApp = () => {
         {route.kind in legalPages && <LegalPageView page={legalPages[route.kind as keyof typeof legalPages]} />}
         {route.kind === "not-found" && <NotFoundPage onLink={onLink} />}
       </main>
-      <SiteFooter onLink={onLink} onOpenPrivacy={() => window.dispatchEvent(new Event("tm-open-privacy"))} />
+      <SiteFooter onLink={onLink} onOpenPrivacy={() => window.dispatchEvent(new Event(openPrivacyEvent))} />
       <PrivacyPreferences />
+      <AdsterraSocialBar enabled={isMonetizedRoute(route)} />
     </div>
   );
 };
@@ -380,6 +391,7 @@ const HomePage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement>) =
             {games.map((game) => <GameCard game={game} key={game.id} onLink={onLink} priority={game.id === featured.id} />)}
           </div>
           <div className="tp-inline-link"><a href="/games/" onClick={onLink}>See every game <span aria-hidden="true">→</span></a></div>
+          <AdsterraDisplaySlot placement="content" />
         </div>
       </section>
 
@@ -403,7 +415,7 @@ const HomePage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement>) =
           <div className="tp-section-heading tp-heading-light"><div><p className="tp-eyebrow">The house rules</p><h2>Hard can still be fair.</h2></div><p>The challenge belongs in the puzzle—not in hidden timers, surprise lives, forced ads, or a maze of account gates.</p></div>
           <div className="tp-promise-grid">
             <article><strong>No account wall</strong><span>Play locally, then decide later if a cloud feature is worth signing into.</span></article>
-            <article><strong>No active ads</strong><span>The current build has no advertising scripts or reward gates.</span></article>
+            <article><strong>No forced ads</strong><span>Optional display and Social Bar ads stay outside active play; popunders are never allowed.</span></article>
             <article><strong>Same daily puzzle</strong><span>Daily modes are made for a shared solve, not a spending race.</span></article>
             <article><strong>Visible rules</strong><span>Color, movement, tension, and objective state remain readable while you play.</span></article>
           </div>
@@ -439,6 +451,7 @@ const GamesPage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement>) 
           <button type="button" onClick={resetFilters}>Reset</button>
         </div>
         {filteredGames.length ? <div className="tp-game-grid">{filteredGames.map((game) => <GameCard game={game} key={game.id} onLink={onLink} />)}</div> : <div className="tp-filter-empty"><h2>No game matches that combination.</h2><p>The animals deny coordinating their schedules.</p><button type="button" onClick={resetFilters}>Clear filters</button></div>}
+        <AdsterraDisplaySlot placement="content" />
       </div>
     </PageIntro>
   );
@@ -460,14 +473,14 @@ const GameDetailPage = ({ slug, onLink }: { slug: string; onLink: (event: MouseE
       <section className="tp-detail-hero" data-accent={game.accent}>
         <div className="tp-shell tp-detail-grid"><div><a className="tp-back-link" href="/games/" onClick={onLink}>← All games</a><p className="tp-eyebrow">{game.eyebrow}</p><h1>{game.title}</h1><p className="tp-lede">{game.summary}</p><div className="tp-detail-pills"><span>{game.difficulty}</span><span>{game.session}</span><span>{game.daily ? "Daily included" : "Open play"}</span></div>{game.firstPlay && <p className="tp-first-play"><strong>First visit</strong><span>{game.firstPlay}</span></p>}<a className="tp-button tp-button-coral" href={game.playPath}>{game.firstPlay ? "Start guided practice" : `Play ${game.shortTitle}`}</a></div><div className="tp-detail-image"><img src={imageFor(game)} alt={game.imageAlt} /></div></div>
       </section>
-      <section className="tp-section tp-section-paper"><div className="tp-shell tp-detail-copy"><p className="tp-detail-personality">{game.personality}</p><div className="tp-detail-columns"><article><p className="tp-eyebrow">How it works</p><h2>Rules you can see.</h2><ol>{game.rules.map((rule) => <li key={rule}>{rule}</li>)}</ol></article><article><p className="tp-eyebrow">Controls</p><h2>Made for a real screen.</h2><ul>{game.controls.map((control) => <li key={control}>{control}</li>)}</ul></article></div><aside className="tp-access-note"><strong>Accessibility status</strong><p>{game.accessibility}</p></aside>{related && <div className="tp-related"><span>Try next</span><a href={pathForGame(related)} onClick={onLink}>{related.title} <span aria-hidden="true">→</span></a></div>}<AdPlaceholder /></div></section>
+      <section className="tp-section tp-section-paper"><div className="tp-shell tp-detail-copy"><p className="tp-detail-personality">{game.personality}</p><div className="tp-detail-columns"><article><p className="tp-eyebrow">How it works</p><h2>Rules you can see.</h2><ol>{game.rules.map((rule) => <li key={rule}>{rule}</li>)}</ol></article><article><p className="tp-eyebrow">Controls</p><h2>Made for a real screen.</h2><ul>{game.controls.map((control) => <li key={control}>{control}</li>)}</ul></article></div><aside className="tp-access-note"><strong>Accessibility status</strong><p>{game.accessibility}</p></aside>{related && <div className="tp-related"><span>Try next</span><a href={pathForGame(related)} onClick={onLink}>{related.title} <span aria-hidden="true">→</span></a></div>}<AdsterraDisplaySlot placement="game-detail" /></div></section>
     </>
   );
 };
 
 const DailyPage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement>) => void }) => (
   <PageIntro eyebrow="The daily board" title="Same puzzle. Different alibi." copy="A daily challenge is a clean shared question: no lives to buy, no account required, and no advantage for arriving with a wallet.">
-    <div className="tp-shell"><div className="tp-daily-note"><strong>How daily play works</strong><p>Each participating game owns its own date-seeded challenge. Open the game you want, choose its Daily mode, and solve the same board other players receive that day.</p></div><div className="tp-daily-grid">{games.filter((game) => game.daily).map((game) => <article key={game.id} data-accent={game.accent}><span className="tp-daily-dot" aria-hidden="true" /><p>{game.eyebrow}</p><h2>{game.title}</h2><span>{game.mechanic} · {game.session}</span><div><a href={pathForGame(game)} onClick={onLink}>Read the rules</a><a href={game.playPath}>Open game</a></div></article>)}</div><AdPlaceholder /></div>
+    <div className="tp-shell"><div className="tp-daily-note"><strong>How daily play works</strong><p>Each participating game owns its own date-seeded challenge. Open the game you want, choose its Daily mode, and solve the same board other players receive that day.</p></div><div className="tp-daily-grid">{games.filter((game) => game.daily).map((game) => <article key={game.id} data-accent={game.accent}><span className="tp-daily-dot" aria-hidden="true" /><p>{game.eyebrow}</p><h2>{game.title}</h2><span>{game.mechanic} · {game.session}</span><div><a href={pathForGame(game)} onClick={onLink}>Read the rules</a><a href={game.playPath}>Open game</a></div></article>)}</div><AdsterraDisplaySlot placement="content" /></div>
   </PageIntro>
 );
 
@@ -483,35 +496,6 @@ const LegalPageView = ({ page }: { page: LegalPage }) => (
   </PageIntro>
 );
 
-const AdPlaceholder = () => (
-  <aside className="tp-ad-placeholder" aria-label="Reserved advertisement placement">
-    <strong>Advertisement</strong>
-    <span>Future Adsterra display placement · provider script inactive</span>
-  </aside>
-);
-
-type PrivacyChoice = "necessary" | "optional";
-
-const readPrivacyChoice = (): PrivacyChoice | null => {
-  try {
-    const currentValue = localStorage.getItem(privacyPreferenceKey);
-    const legacyValue = localStorage.getItem(legacyPrivacyPreferenceKey);
-    const saved = JSON.parse(currentValue ?? legacyValue ?? "null") as { choice?: string } | null;
-    const choice = saved?.choice === "necessary" || saved?.choice === "optional" ? saved.choice : null;
-    if (!currentValue && legacyValue && choice) {
-      localStorage.setItem(privacyPreferenceKey, legacyValue);
-      localStorage.removeItem(legacyPrivacyPreferenceKey);
-    }
-    return choice;
-  } catch {
-    try {
-      localStorage.removeItem(privacyPreferenceKey);
-      localStorage.removeItem(legacyPrivacyPreferenceKey);
-    } catch { /* Storage can be unavailable. */ }
-    return null;
-  }
-};
-
 const PrivacyPreferences = () => {
   const [choice, setChoice] = useState<PrivacyChoice | null>(() => readPrivacyChoice());
   const [open, setOpen] = useState(() => readPrivacyChoice() === null);
@@ -519,24 +503,35 @@ const PrivacyPreferences = () => {
 
   useEffect(() => {
     const show = () => setOpen(true);
+    const syncAcrossTabs = () => {
+      const next = readPrivacyChoice();
+      if (choice === "optional" && next !== "optional") {
+        window.location.reload();
+        return;
+      }
+      setChoice(next);
+      if (next === null) setOpen(true);
+    };
+    window.addEventListener(openPrivacyEvent, show);
     window.addEventListener("tm-open-privacy", show);
-    return () => window.removeEventListener("tm-open-privacy", show);
-  }, []);
+    window.addEventListener("storage", syncAcrossTabs);
+    return () => {
+      window.removeEventListener(openPrivacyEvent, show);
+      window.removeEventListener("tm-open-privacy", show);
+      window.removeEventListener("storage", syncAcrossTabs);
+    };
+  }, [choice]);
 
   useEffect(() => {
     if (open) firstButtonRef.current?.focus();
   }, [open]);
 
   const save = (next: PrivacyChoice) => {
-    try {
-      localStorage.setItem(privacyPreferenceKey, JSON.stringify({ choice: next, savedAt: new Date().toISOString() }));
-      localStorage.removeItem(legacyPrivacyPreferenceKey);
-    } catch {
-      // Preserve the in-session choice if durable storage is blocked.
-    }
+    const withdrawingOptional = choice === "optional" && next === "necessary";
+    savePrivacyChoice(next);
     setChoice(next);
     setOpen(false);
-    window.dispatchEvent(new CustomEvent("crewmultiply:consent-ready", { detail: { choice: next } }));
+    if (withdrawingOptional) window.setTimeout(() => window.location.reload(), 0);
   };
 
   if (!open) return <span className="tp-privacy-state" aria-live="polite">Privacy preference: {choice === "optional" ? "optional allowed" : "necessary only"}</span>;
@@ -544,7 +539,7 @@ const PrivacyPreferences = () => {
     <aside className="tp-privacy-panel" role="dialog" aria-modal="false" aria-labelledby="tp-privacy-title">
       <p className="tp-eyebrow">Privacy choices</p>
       <h2 id="tp-privacy-title">Your game, your choice.</h2>
-      <p>Necessary storage keeps local progress, settings, and this preference working. Adsterra is planned for future display ads, but no optional provider script is configured or loaded in this preview.</p>
+      <p>Necessary storage keeps local progress, settings, and this preference working. “Allow optional” enables Adsterra display ads and Social Bar on eligible website pages. Active games remain playable either way, and popunders are never used.</p>
       <div><button ref={firstButtonRef} type="button" onClick={() => save("necessary")}>Necessary only</button><button type="button" onClick={() => save("optional")}>Allow optional</button><a href="/cookies/">Read details</a></div>
     </aside>
   );
@@ -557,5 +552,5 @@ const NotFoundPage = ({ onLink }: { onLink: (event: MouseEvent<HTMLAnchorElement
 const PageIntro = ({ eyebrow, title, copy, children }: { eyebrow: string; title: string; copy: string; children: ReactNode }) => <><section className="tp-page-intro"><div className="tp-shell"><p className="tp-eyebrow">{eyebrow}</p><h1>{title}</h1><p>{copy}</p></div></section>{children}</>;
 
 const SiteFooter = ({ onLink, onOpenPrivacy }: { onLink: (event: MouseEvent<HTMLAnchorElement>) => void; onOpenPrivacy: () => void }) => (
-  <footer className="tp-footer"><div className="tp-shell tp-footer-grid"><div><a className="tp-brand tp-brand-footer" href="/" onClick={onLink}><span>Crew</span><span className="tp-brand-mark">×</span><span>Multiply</span><small>Play</small></a><p>Small moves, big mischief, and a growing shelf of animal puzzles.</p><span className="tp-footer-status">Adsterra reserved · Scripts off</span></div><div><h2>Play</h2><a href="/games/" onClick={onLink}>All games</a><a href="/daily/" onClick={onLink}>Daily puzzles</a><a href="/shelf/">Living Shelf</a></div><div><h2>Studio</h2><a href="/about/" onClick={onLink}>About</a><a href="/accessibility/" onClick={onLink}>Accessibility</a><a href="/contact/" onClick={onLink}>Contact readiness</a></div><div><h2>Legal</h2><a href="/privacy/" onClick={onLink}>Privacy</a><a href="/terms/" onClick={onLink}>Terms</a><a href="/cookies/" onClick={onLink}>Cookies & storage</a><a href="/ads-and-rewards/" onClick={onLink}>Ads & rewards</a><button className="tp-footer-privacy" type="button" onClick={onOpenPrivacy}>Privacy choices</button></div></div><div className="tp-shell tp-footer-bottom">© {new Date().getFullYear()} CrewMultiply Play · Local pre-launch build · Legal review required before public release</div></footer>
+  <footer className="tp-footer"><div className="tp-shell tp-footer-grid"><div><a className="tp-brand tp-brand-footer" href="/" onClick={onLink}><span>Crew</span><span className="tp-brand-mark">×</span><span>Multiply</span><small>Play</small></a><p>Small moves, big mischief, and a growing shelf of animal puzzles.</p><span className="tp-footer-status">Adsterra · Optional only · No popunders</span></div><div><h2>Play</h2><a href="/games/" onClick={onLink}>All games</a><a href="/daily/" onClick={onLink}>Daily puzzles</a><a href="/shelf/">Living Shelf</a></div><div><h2>Studio</h2><a href="/about/" onClick={onLink}>About</a><a href="/accessibility/" onClick={onLink}>Accessibility</a><a href="/contact/" onClick={onLink}>Contact readiness</a></div><div><h2>Legal</h2><a href="/privacy/" onClick={onLink}>Privacy</a><a href="/terms/" onClick={onLink}>Terms</a><a href="/cookies/" onClick={onLink}>Cookies & storage</a><a href="/ads-and-rewards/" onClick={onLink}>Ads & rewards</a><button className="tp-footer-privacy" type="button" onClick={onOpenPrivacy}>Privacy choices</button></div></div><div className="tp-shell tp-footer-bottom">© {new Date().getFullYear()} CrewMultiply Play · Pre-launch build · Legal review required before public release</div></footer>
 );

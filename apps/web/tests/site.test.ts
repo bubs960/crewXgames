@@ -63,7 +63,7 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     expect(index).toContain("https://play.crewmultiply.com/");
     expect(manifest).toContain('"name": "CrewMultiply Play"');
     expect(manifest).toContain('"short_name": "CM Play"');
-    expect(serviceWorker).toContain('const VERSION = "crewmultiply-play-phase1-2026-07-19-v1"');
+    expect(serviceWorker).toContain('const VERSION = "crewmultiply-play-phase1-2026-07-22-v2"');
     expect(`${index}\n${manifest}\n${serviceWorker}`).not.toContain("TeamMultiply");
   });
 
@@ -90,5 +90,36 @@ describe("CrewMultiply Play Phase 1 catalog", () => {
     expect(styles).toContain("@media (prefers-reduced-motion: no-preference)");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toContain("animation: none !important");
+  });
+
+  it("ships only the approved consent-gated Adsterra starter batch", () => {
+    const ads = readFileSync(resolve(process.cwd(), "apps/web/src/site/AdsterraAds.tsx"), "utf8");
+    const site = readFileSync(resolve(process.cwd(), "apps/web/src/site/SiteApp.tsx"), "utf8");
+    const privacy = readFileSync(resolve(process.cwd(), "apps/web/src/site/privacyPreferences.ts"), "utf8");
+
+    expect(ads).toContain('key: "6fdbf640fe1300e9f3f4f31c3eb48dd2"');
+    expect(ads).toContain('key: "841bc3e48da39de5799b6955712cee8b"');
+    expect(ads).toContain("https://pl30490413.effectivecpmnetwork.com/1f/03/55/1f03554e30d399a741a4d96f44ade128.js");
+    expect(ads).toContain('if (!enabled || choice !== "optional") return;');
+    expect(ads).toContain('if (!frame || choice !== "optional")');
+    expect(ads.toLowerCase()).not.toContain("popunder");
+    expect(site).toContain('const monetizedRouteKinds = new Set<RouteKind>(["home", "games", "detail", "daily"])');
+    expect(site).toContain('<AdsterraDisplaySlot placement="game-detail" />');
+    expect(site).toContain('<AdsterraSocialBar enabled={isMonetizedRoute(route)} />');
+    expect(site).toContain("Popunders and clickunders are never allowed.");
+    expect(privacy).toContain('export const privacyPreferenceKey = "cm_privacy_choice_v1"');
+  });
+
+  it("includes Cloudflare headers for the approved providers and preserves Pages SPA routing", () => {
+    const headers = readFileSync(resolve(process.cwd(), "apps/web/public/_headers"), "utf8");
+    const redirects = readFileSync(resolve(process.cwd(), "apps/web/public/_redirects"), "utf8");
+    const viteConfig = readFileSync(resolve(process.cwd(), "apps/web/vite.config.ts"), "utf8");
+
+    expect(headers).toContain("Content-Security-Policy:");
+    expect(headers).toContain("script-src 'self' 'unsafe-inline' https:");
+    expect(headers).toContain("upgrade-insecure-requests");
+    expect(headers).toContain("frame-ancestors 'none'");
+    expect(redirects.trim()).toBe("/* /index.html 200");
+    expect(viteConfig).not.toContain('resolve(outputRoot, "404.html")');
   });
 });

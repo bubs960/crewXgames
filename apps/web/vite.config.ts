@@ -61,8 +61,6 @@ const legacyGameCompatibility = (): Plugin => ({
       mkdirSync(dirname(destination), { recursive: true });
       copyFileSync(resolve(workspaceRoot, folder, "index.html"), destination);
     }
-    const appShell = resolve(outputRoot, "index.html");
-    if (existsSync(appShell)) copyFileSync(appShell, resolve(outputRoot, "404.html"));
   }
 });
 

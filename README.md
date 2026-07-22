@@ -34,4 +34,6 @@ npm run verify:site
 
 ## Deployment and advertising
 
-Cloudflare deployment and the production domain will be connected as a separate release step. Adsterra advertising must remain aligned with the site’s consent, privacy, cookie, terms, and ads-and-rewards disclosures; account credentials and provider secrets must never be committed.
+The Git-connected Cloudflare Pages project is `crewxgames` and publishes at `https://crewxgames.pages.dev/`. Its production branch is `main`, build command is `npm run build`, and output directory is `apps/web/dist`. The intended custom domain is `play.crewmultiply.com`; the root domain and `www` remain on their existing GitHub Pages records.
+
+The approved Adsterra starter batch contains one responsive display placement per eligible page plus the Social Bar. Every provider script is optional-consent gated. Active games, the Living Shelf, legal/support routes, offline/error pages, and not-found pages contain no ad mount. Popunder and clickunder formats are permanently excluded. See `ADSTERRA-STARTER-BATCH-2026-07-22.md` for the route map and replacement plan. Account credentials and provider secrets must never be committed.
