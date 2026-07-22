@@ -1,14 +1,14 @@
-# TeamMultiply Play: Living Shelf Ecosystem Production Plan
+# CrewMultiply Play: Living Shelf Ecosystem Production Plan
 
 Date: 2026-07-17
 Status: Approved product direction
-Owner: TeamMultiply Play
+Owner: CrewMultiply Play
 Initial platform: Website and installable PWA
 Later platform: iOS and Android through a shared web runtime
 
 ## 1. Executive Decision
 
-TeamMultiply Play will not be a menu of unrelated animal games with a conventional badge collection.
+CrewMultiply Play will not be a menu of unrelated animal games with a conventional badge collection.
 
 It will be a connected puzzle ecosystem built around **The Living Shelf**: a persistent, playable animal environment that remembers what the player accomplishes across every game.
 
@@ -22,9 +22,9 @@ The first release is site-first, local-first, and deliberately contained. It is 
 
 ## 2. Product Position
 
-### 2.1 What TeamMultiply Play becomes
+### 2.1 What CrewMultiply Play becomes
 
-TeamMultiply Play is a collection of difficult, fair animal games set inside one evolving household.
+CrewMultiply Play is a collection of difficult, fair animal games set inside one evolving household.
 
 The player is simultaneously:
 
@@ -820,7 +820,7 @@ Exit gate:
 Deliverables:
 
 1. Complete legal operator, privacy, cookie, accessibility, and contact pages.
-2. Confirm `play.teammultiply.com` or another approved deployment route.
+2. Confirm the approved CrewMultiply custom domain and deployment route.
 3. Complete offline behavior and service-worker versioning.
 4. Add analytics limited to product health and consented usage.
 5. Integrate one conservative display-ad placement outside gameplay and the shelf.
@@ -862,12 +862,14 @@ Deliverables:
 4. Package the proven website runtime through Capacitor.
 5. Add native lifecycle, safe areas, haptics, share sheet, and store compliance.
 6. Add optional account and cloud sync only after local-first behavior is proven.
+7. Ship the first accessible Interactive Mischief pack described in `CREWMULTIPLY-PLAY-INTERACTIVE-MISCHIEF-PLAN-2026-07-22.md` after the launch and readiness gates pass.
 
 Exit gate:
 
 - New games add ecosystem content without bespoke core changes.
 - Web saves migrate cleanly into the phone package where technically permitted.
 - Native ads remain behind the same strict placement and consent policy.
+- Easter eggs remain optional, keyboard- and touch-accessible, reduced-motion safe, and free of unexpected audio.
 
 ## 17. Recommended Production Order
 
@@ -1047,7 +1049,7 @@ Do not begin final environment art until this end-to-end loop is proven.
 
 The Living Shelf is ready for production launch when a player can:
 
-1. Discover TeamMultiply Play through Counter Cat.
+1. Discover CrewMultiply Play through Counter Cat.
 2. Solve a fair, difficult puzzle.
 3. Earn a clearly explained object.
 4. Return to a rich shared room.
@@ -1058,5 +1060,4 @@ The Living Shelf is ready for production launch when a player can:
 9. Enter another game because something in the room made it relevant.
 10. Leave and return with the complete world intact.
 
-When that loop feels delightful without currency, forced ads, or random rewards, TeamMultiply Play has its ecosystem advantage.
-
+When that loop feels delightful without currency, forced ads, or random rewards, CrewMultiply Play has its ecosystem advantage.
